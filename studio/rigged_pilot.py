@@ -227,21 +227,44 @@ def build_forest():
     return lantern
 
 
+def measure_skeletal_motion(scene, armature, sections):
+    """Prove that the pose skeleton articulates, independently of root/camera motion."""
+    start, end = int(sections[1][1]), int(sections[1][2])
+    if end - start < 3:
+        raise RuntimeError("Walk action interval too short to verify skeletal animation")
+    scene.frame_set(start + 1)
+    first = {bone.name: bone.matrix.copy() for bone in armature.pose.bones}
+    scene.frame_set(min(start + 7, end - 1))
+    maximum = 0.0
+    for bone in armature.pose.bones:
+        before = first[bone.name]
+        translation = (bone.matrix.translation - before.translation).length
+        rotation = before.to_quaternion().rotation_difference(
+            bone.matrix.to_quaternion()).angle
+        maximum = max(maximum, translation, rotation)
+    if maximum < 0.002:
+        raise RuntimeError(
+            "No measurable skeletal articulation; camera/root movement is not a valid substitute"
+        )
+    scene.frame_set(1)
+    return round(maximum, 5)
+
+
 def camera_animation(end):
     camera_data = bpy.data.cameras.new("CINEMA_CAMERA")
     camera = bpy.data.objects.new("CINEMA_CAMERA", camera_data)
     bpy.context.collection.objects.link(camera)
     bpy.context.scene.camera = camera
     camera_data.type = "PERSP"
-    camera_data.lens = 50
+    camera_data.lens = 35
     # Three motivated shots: establish / follow / discover, not random zooms.
     shots = [
-        (1, (7, -11, 4), (0, 1, 1.2)),
-        (round(end * .27), (5, -6, 2.7), (0, 1.1, 1.2)),
-        (round(end * .27) + 1, (3.5, -3.5, 2.4), (0, 2.1, 1.2)),
-        (round(end * .69), (4.5, .4, 2.7), (.5, 3.2, 1.2)),
-        (round(end * .69) + 1, (4.1, 1.8, 3), (.8, 4, 1.2)),
-        (end, (3, 2.7, 2.6), (1.4, 6, 1.2)),
+        (1, (10, -13, 4.5), (0, 1, 1.2)),
+        (round(end * .27), (9, -11, 4.0), (0, 1.1, 1.2)),
+        (round(end * .27) + 1, (8, -10, 4.0), (0, 2.1, 1.2)),
+        (round(end * .69), (8, -8, 4.0), (.5, 3.2, 1.2)),
+        (round(end * .69) + 1, (7, -7, 4.0), (.8, 4, 1.2)),
+        (end, (6, -5, 4.0), (1.4, 6, 1.2)),
     ]
     for frame, position, target in shots:
         camera.location = position
@@ -291,6 +314,7 @@ def main():
     build_forest()
     mover, armature, actions = rigged_fox(asset)
     sections = timeline(mover, armature, actions, scene.frame_end)
+    bone_motion_delta = measure_skeletal_motion(scene, armature, sections)
     camera_animation(scene.frame_end)
     light("Moonlight / motivated key", (0, 2, 9), (0.52, 0.75, 1), 1200, 7)
     light("Warm lantern / fill", (-1.8, 2, 3), (1, .64, .34), 550, 4)
@@ -306,6 +330,7 @@ def main():
         "status": "motion_proof_only",
         "video": str(out),
         "has_actual_armature": True,
+        "measured_skeletal_motion_delta": bone_motion_delta,
         "animation_actions": sorted(actions),
         "timeline_sections": sections,
         "fps": scene.render.fps,
