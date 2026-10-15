@@ -42,6 +42,7 @@ jobs:
           assert path.is_file() and path.stat().st_size > 1000
           r=json.loads(pathlib.Path("out/rigged_motion.report.json").read_text())
           assert r["has_actual_armature"]
+          assert r["measured_skeletal_motion_delta"] >= 0.002, r
           assert r["animation_actions"] == ["run", "survey", "walk"]
           assert r["cinematic_release_pass"] is False
           info=json.loads(subprocess.check_output(["ffprobe","-v","error","-show_streams","-of","json",str(path)]))
