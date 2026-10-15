@@ -255,7 +255,7 @@ def setup_render(scene, args, out):
     scene.render.engine = "CYCLES"
     scene.cycles.device = "CPU"
     scene.cycles.samples = 6 if args.smoke else 32
-    scene.cycles.use_denoising = True
+    scene.cycles.use_denoising = not args.smoke  # Ubuntu apt Blender is built without OIDN
     scene.render.resolution_x = 640 if args.smoke else 1920
     scene.render.resolution_y = 360 if args.smoke else 1080
     scene.render.resolution_percentage = 100
