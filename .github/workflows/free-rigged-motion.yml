@@ -22,7 +22,7 @@ jobs:
       - name: Install free Blender and ffmpeg
         run: |
           sudo apt-get update -qq
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq blender ffmpeg
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq blender ffmpeg python3-numpy
           blender --version | head -3
           ffmpeg -version | head -1
 
@@ -32,7 +32,7 @@ jobs:
           OMP_NUM_THREADS: "2"
         run: |
           mkdir -p out
-          blender -b -t 2 --python studio/rigged_pilot.py -- --smoke --seconds 2 --fps 24 --out out/rigged_motion.mp4
+          blender -b -t 2 --python-exit-code 3 --python studio/rigged_pilot.py -- --smoke --seconds 2 --fps 24 --out out/rigged_motion.mp4
 
       - name: Verify artifact and evidence
         run: |
