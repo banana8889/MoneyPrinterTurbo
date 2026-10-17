@@ -44,7 +44,7 @@ def load_cast(path):
 
 
 def rhubarb_cues(binary: Path, path: Path):
-    cmd = [str(binary), "-f", "json", "--extendedShapes", "GH", str(path)]
+    cmd = [str(binary), "-f", "json", "--extendedShapes", "GHX", str(path)]
     proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                           text=True, encoding="utf-8", timeout=150, check=False)
     if proc.returncode:
