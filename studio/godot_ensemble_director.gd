@@ -75,7 +75,7 @@ func _spawn_cast() -> bool:
         add_child(actor)
         # A real CCD0 / FACS actor stage: head, body, bone attachments,
         # live animation player, face mesh, eyelids, eyes and hair.
-        if not actor.get("skel") is Skeleton3D or not actor.get("face_mi") is MeshInstance3D:
+        if not (actor.get("skel") is Skeleton3D) or not (actor.get("face_mi") is MeshInstance3D):
             push_error("Missing live skeletal/FACS actor stage for " + speaker)
             return false
         # Only one scene-wide environment. Duplicate floors/lights are rejected
