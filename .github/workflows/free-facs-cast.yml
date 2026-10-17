@@ -1,0 +1,53 @@
+name: Free FACS Film Cast Integration Gate
+on:
+  push:
+    branches: [autonomy-kids-v1]
+    paths:
+      - "studio/export_facs_cast.py"
+      - "studio/install_facs_actor.py"
+      - "studio/godot_facs_cast.gd"
+      - "test/services/test_facs_pipeline.py"
+      - ".github/workflows/free-facs-cast.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  real-facial-rig-gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 23
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prove the offline voice-to-face transfer is correct
+        run: python3 -m unittest -v test.services.test_facs_pipeline
+
+      - name: Install stock open-source Godot 4.6
+        run: |
+          curl -fL --retry 3 \
+            https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_linux.x86_64.zip \
+            -o /tmp/godot.zip
+          unzip -q /tmp/godot.zip -d /tmp
+          chmod +x /tmp/Godot_v4.6-stable_linux.x86_64
+          /tmp/Godot_v4.6-stable_linux.x86_64 --version
+
+      - name: Compile/check the real GDScript facial acting driver
+        run: |
+          mkdir -p /tmp/cast-godot
+          printf '[application]\nconfig/name="StudioCastQA"\n' > /tmp/cast-godot/project.godot
+          cp studio/godot_facs_cast.gd /tmp/cast-godot/actor.gd
+          /tmp/Godot_v4.6-stable_linux.x86_64 --headless --path /tmp/cast-godot \
+            --check-only --script res://actor.gd
+
+      - name: Evidence — no cinematic release without an expressive original cast
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          a=Path("studio/godot_facs_cast.gd").read_text()
+          b=Path("studio/export_facs_cast.py").read_text()
+          assert "_face.set_blend_shape_value" in a, "No real 3D mesh deformation"
+          assert 'mouth' in a and "emotion" in a, "No speech/acting controls"
+          assert '"film_ready": False' in b, "Never self-certify source audio"
+          print("FACS implementation checked; rendered film and performance acceptance NOT yet verified.")
+          PY
