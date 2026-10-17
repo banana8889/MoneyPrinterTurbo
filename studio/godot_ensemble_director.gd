@@ -23,6 +23,7 @@ var _narrator: AudioStreamPlayer
 var _last_narrator: int = -1
 var _cast_ready: bool = false
 var _current_shot: int = -1
+var _story_timeline_completed: bool = false
 var _shots: Array = []
 var _bindings_evidence: Dictionary = {}
 
@@ -169,6 +170,11 @@ func _process(delta: float) -> void:
     var revelation: float = smoothstep(_duration * .51, _duration * .72, _elapsed)
     lantern.position.y = 2.5 + .32 * revelation
     lantern.scale = Vector3.ONE * (0.95 + 0.2 * revelation)
+    if _elapsed >= _duration and not _story_timeline_completed:
+        _story_timeline_completed = true
+        print("[starwood] WHOLE_DIALOGUE_TIMELINE_COMPLETED lines=", _lines.size(),
+              " seconds=", _duration, " actors=", actors.size(),
+              " film_ready=false")
     if _elapsed >= _duration + 1.0 and OS.has_environment("STARWOOD_ONE_SHOT"):
         get_tree().quit()
 
