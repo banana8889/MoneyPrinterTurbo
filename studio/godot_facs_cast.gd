@@ -56,9 +56,16 @@ func _ready() -> void:
 
 func _bind_actor() -> void:
     _actor = get_parent()
-    if _actor == null or not _actor.get("face_mi") is MeshInstance3D:
+    if _actor == null or not (_actor.get("face_mi") is MeshInstance3D):
         push_error("Actor has no rigged facial MeshInstance3D (face_mi); no fake motion")
         return
+    # Disable the upstream reel's independent placeholder speech player: one
+    # actor must never speak both its stock demo WAV and the new dialogue.
+    var demo_voice: Variant = _actor.get("_speech_player")
+    if demo_voice is AudioStreamPlayer:
+        demo_voice.stop()
+        demo_voice.queue_free()
+        _actor.set("_speech_player", null)
     _face = _actor.get("face_mi") as MeshInstance3D
     if _face.mesh == null or _face.get_blend_shape_count() < 8:
         push_error("Professional actor facial blend shapes are missing")
