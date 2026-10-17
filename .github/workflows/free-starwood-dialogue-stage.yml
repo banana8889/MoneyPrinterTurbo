@@ -4,6 +4,7 @@ on:
     branches: [autonomy-kids-v1]
     paths:
       - ".github/workflows/free-starwood-dialogue-stage.yml"
+      - "studio/godot_ensemble_director.gd"
   workflow_dispatch:
 
 permissions:
@@ -82,15 +83,17 @@ jobs:
 
       - name: Verify actors, face shapes and directed two-character scene with actual dialogue
         run: |
-          timeout 150 /tmp/Godot_v4.6-stable_linux.x86_64 --headless \
+          STARWOOD_ONE_SHOT=1 timeout 150 /tmp/Godot_v4.6-stable_linux.x86_64 --headless \
             --path /tmp/vitruvian/godot_project \
-            res://studio_cast/starwood_duo_scene.tscn --quit-after 3550 \
+            res://studio_cast/starwood_duo_scene.tscn --fixed-fps 24 --quit-after 1400 \
             > /tmp/starwood_playback.log 2>&1 \
             || { tail -100 /tmp/starwood_playback.log; exit 1; }
           grep -q "REAL 3D ENSEMBLE ready: actors=2 shots=14" /tmp/starwood_playback.log \
             || { tail -100 /tmp/starwood_playback.log; exit 1; }
           grep -q "FACS bound: luma" /tmp/starwood_playback.log \
             || { tail -100 /tmp/starwood_playback.log; exit 1; }
+          grep -q "WHOLE_DIALOGUE_TIMELINE_COMPLETED lines=14" /tmp/starwood_playback.log \
+            || { tail -100 /tmp/starwood_playback.log; echo "Not a complete story performance"; exit 1; }
           grep -q "FACS bound: pip" /tmp/starwood_playback.log \
             || { tail -100 /tmp/starwood_playback.log; exit 1; }
           if grep -E "SCRIPT ERROR:|Parse Error:|Failed loading resource" /tmp/starwood_playback.log; then
