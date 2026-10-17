@@ -61,6 +61,10 @@ def validate_cast_and_cues(cast_path: Path, cues_dir: Path):
             raise ValueError("Overlapping/invalid line timestamp")
         prev = end
         wav = Path(line.get("audio", ""))
+        # CI artifact extraction changes the root: safely recover same-folder WAV
+        # by basename, never trusting the archived absolute runner path.
+        if not wav.is_file():
+            wav = cast_path.parent / wav.name
         if not wav.is_file() or wav.suffix.lower() != ".wav":
             raise FileNotFoundError(f"Missing recorded WAV line {i+1}: {wav}")
         if not line.get("text", "").strip():
