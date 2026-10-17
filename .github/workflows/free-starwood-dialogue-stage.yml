@@ -1,0 +1,112 @@
+name: Real Starwood Dialogue + Rigged Ensemble (One-off)
+on:
+  push:
+    branches: [autonomy-kids-v1]
+    paths:
+      - ".github/workflows/free-starwood-dialogue-stage.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  genuine-spoken-story:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 27
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Retrieve this project's already-generated real TTS/phoneme evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: unreviewed-starwood-scene1-dialogue
+          run-id: 39052694824
+          github-token: ${{ github.token }}
+          path: /tmp/real-cast
+
+      - name: Verify real 14-line, 3-voice complete spoken performance bundle
+        run: |
+          python3 - <<'PY'
+          import pathlib,json
+          root=pathlib.Path("/tmp/real-cast")
+          m=json.loads((root/"scene1_audio"/"cast_report.json").read_text())
+          assert len(m["lines"])==14 and len({v["speaker"] for v in m["lines"]})==3
+          assert m["duration_seconds"]>50 and m["approval"] is False
+          assert all((root/"scene1_audio"/pathlib.Path(r["audio"]).name).exists() for r in m["lines"])
+          for person in ("luma","pip"):
+              cues=json.loads((root/"scene1_lipsync"/(person+"_cues.json")).read_text())
+              assert len(cues["mouthCues"])>80
+          print("Three real offline TTS voices and the original 51s Starwood script verified. Acting quality NOT certified.")
+          PY
+
+      - name: Use real published CC0 facial and rigged-body characters
+        run: |
+          git clone --depth=1 --single-branch https://github.com/ibrews/VitruvianGodot.git /tmp/vitruvian
+          test -s /tmp/vitruvian/godot_project/vitruvian_head.glb
+          test -s /tmp/vitruvian/godot_project/vitruvian_body.glb
+          grep -q 'CC0' /tmp/vitruvian/NOTICE.md
+
+      - name: Bind actual original 51-second voice tracks and phonemes to both facial actors
+        run: |
+          python3 studio/export_facs_cast.py \
+            --cast-report /tmp/real-cast/scene1_audio/cast_report.json \
+            --cues-dir /tmp/real-cast/scene1_lipsync \
+            --godot-project /tmp/vitruvian/godot_project
+          python3 studio/install_ensemble.py --project /tmp/vitruvian/godot_project
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          root=Path("/tmp/vitruvian/godot_project/studio_cast")
+          m=json.loads((root/"scene_cast.json").read_text())
+          assert len(m["lines"])==14
+          assert m["duration_seconds"] > 50
+          assert not m["release_gate"]["film_ready"]
+          assert len(m["cues"]["luma"])>80 and len(m["cues"]["pip"])>80
+          PY
+
+      - name: Install free stock Godot
+        run: |
+          curl -fL --retry 3 \
+            https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_linux.x86_64.zip \
+            -o /tmp/godot.zip
+          unzip -q /tmp/godot.zip -d /tmp
+          chmod +x /tmp/Godot_v4.6-stable_linux.x86_64
+
+      - name: Import real FACS morph assets and voice WAVs
+        run: |
+          timeout 120 /tmp/Godot_v4.6-stable_linux.x86_64 --headless \
+            --path /tmp/vitruvian/godot_project --editor --quit \
+            > /tmp/starwood_import.log 2>&1 \
+            || { tail -80 /tmp/starwood_import.log; exit 1; }
+
+      - name: Verify actors, face shapes and directed two-character scene with actual dialogue
+        run: |
+          timeout 150 /tmp/Godot_v4.6-stable_linux.x86_64 --headless \
+            --path /tmp/vitruvian/godot_project \
+            res://studio_cast/starwood_duo_scene.tscn --quit-after 3550 \
+            > /tmp/starwood_playback.log 2>&1 \
+            || { tail -100 /tmp/starwood_playback.log; exit 1; }
+          grep -q "REAL 3D ENSEMBLE ready: actors=2 shots=14" /tmp/starwood_playback.log \
+            || { tail -100 /tmp/starwood_playback.log; exit 1; }
+          grep -q "FACS bound: luma" /tmp/starwood_playback.log \
+            || { tail -100 /tmp/starwood_playback.log; exit 1; }
+          grep -q "FACS bound: pip" /tmp/starwood_playback.log \
+            || { tail -100 /tmp/starwood_playback.log; exit 1; }
+          if grep -E "SCRIPT ERROR:|Parse Error:|Failed loading resource" /tmp/starwood_playback.log; then
+            echo "Rejecting real stage with runtime errors"
+            exit 1
+          fi
+          grep -E "REAL 3D ENSEMBLE|FACS bound" /tmp/starwood_playback.log
+          echo "REAL dialogue/face linkage passed. Actual rendered film quality is NOT verified."
+
+      - name: Retain private evidence and not partial public videos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: starwood-14-line-real-cast-stage-qa
+          path: |
+            /tmp/starwood_import.log
+            /tmp/starwood_playback.log
+          retention-days: 2
+          if-no-files-found: warn
