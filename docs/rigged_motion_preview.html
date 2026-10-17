@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rigged 3D Motion — MoneyPrinterTurbo</title><style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#080f1e;color:#f0f5ff;font:15px system-ui,Arial,sans-serif}#stage{height:75vh;min-height:460px;position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 15%,#30456d,#10182d 68%)}#viewport{width:100%;height:100%;display:block}.overlay{position:absolute;top:16px;left:16px;right:16px;pointer-events:none;max-width:720px}.overlay h1{font-size:clamp(20px,3vw,30px);margin:0 0 5px}.overlay p{margin:0;color:#bed1ee;font-size:13px}#panel{padding:14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:#121c30}button{cursor:pointer;border:1px solid #6382ab;color:#fff;background:#243b5d;padding:11px 16px;border-radius:10px;font-weight:700}button.active{background:#006f67;border-color:#67ebd4}button:hover{background:#356099}#status{padding:10px 14px;color:#cedbf1;font-size:13px}a{color:#92d9fa}.details{padding:0 16px 24px;color:#bfcee8;line-height:1.55;font-size:13px}canvas{display:block}#fallback{display:none;position:absolute;left:10%;right:10%;top:40%;text-align:center;background:#111f36;padding:18px;border-radius:14px;border:1px solid #5e718f}
+</style><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script></head>
+<body><main><section id="stage"><canvas id="viewport"></canvas><div class="overlay"><h1>Real skeletal 3D movement</h1><p>Motion reference: articulated joints, genuine walking / running cycles. Not a finished episode.</p></div><div id="fallback">The model could not load. This viewer needs internet access to the public Khronos asset and the Three.js library. <p><a href="https://github.khronos.org/glTF-Sample-Viewer-Release/?model=https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/Fox/glTF-Binary/Fox.glb" target="_blank" rel="noopener">Open official live motion viewer</a></p></div></section><div id="panel"><button id="survey">Look around</button><button id="walk" class="active">Walk</button><button id="run">Run</button><button id="pause">Pause</button><button id="record">Record 12s WebM</button><span>Drag to rotate camera · Scroll to zoom</span></div><div id="status" aria-live="polite">Loading real, rigged fox animation from Khronos...</div><div class="details">Experimental motion baseline for MoneyPrinterTurbo: one licensed reference model used to prove animated skeletal movement. It is <strong>not Luma/Pip's final character</strong>, contains no speaking performance, and is not an episode. Asset credits: Fox model PixelMannen (CC0), animation tomkranis (CC BY 4.0), glTF conversion AsoboStudio/scurest (CC BY 4.0). <a href="https://github.com/KhronosGroup/glTF-Sample-Assets/blob/main/Models/Fox/README.md" target="_blank" rel="noopener">Attribution and license</a>.</div></main>
+<script type="module">
+import * as THREE from 'three';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+const canvas=document.querySelector('#viewport'), box=document.querySelector('#stage'), status=document.querySelector('#status');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.shadowMap.enabled=true;
+const scene=new THREE.Scene();scene.background=new THREE.Color('#283f5c');scene.fog=new THREE.FogExp2(0x283f5c,.028);
+const camera=new THREE.PerspectiveCamera(43,1,.1,300);camera.position.set(5,3,9);const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.target.set(0,1,0);
+scene.add(new THREE.HemisphereLight(0xf0ffff,0x34473c,2.2));const sunlight=new THREE.DirectionalLight(0xffedc1,3.1);sunlight.position.set(-3,9,5);sunlight.castShadow=true;sunlight.shadow.mapSize.set(1024,1024);scene.add(sunlight);
+const ground=new THREE.Mesh(new THREE.CircleGeometry(60,128),new THREE.MeshStandardMaterial({color:0x497658,roughness:0.98}));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+const far=new THREE.Group();scene.add(far);let seed=21;function rand(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}
+for(let i=0;i<65;i++){let a=rand()*Math.PI*2,r=8+rand()*40,h=2+rand()*3.2;const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.12,.2,h*.52,5),new THREE.MeshStandardMaterial({color:0x635042}));trunk.position.set(Math.cos(a)*r,h*.26,Math.sin(a)*r);far.add(trunk);const leaf=new THREE.Mesh(new THREE.ConeGeometry(.9+rand()*.6,h,7),new THREE.MeshStandardMaterial({color:i%3===0?0x256f62:0x184c55,roughness:1}));leaf.position.set(trunk.position.x,h*.83,trunk.position.z);far.add(leaf)}
+let mixer,actions={},active=null,foxPivot=null,paused=false;const clock=new THREE.Clock();
+const ASSET='https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/Fox/glTF-Binary/Fox.glb';
+new GLTFLoader().load(ASSET,gltf=>{
+ foxPivot=new THREE.Group();scene.add(foxPivot);const fox=gltf.scene;foxPivot.add(fox);fox.updateMatrixWorld(true);
+ const bounds=new THREE.Box3().setFromObject(fox),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
+ const scale=2.3/Math.max(size.x,size.y,size.z);fox.scale.setScalar(scale);fox.position.set(-center.x*scale,-bounds.min.y*scale,-center.z*scale);
+ fox.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
+ mixer=new THREE.AnimationMixer(fox);for(const clip of gltf.animations){let name=clip.name.toLowerCase();actions[name]=mixer.clipAction(clip);actions[name].setLoop(THREE.LoopRepeat,Infinity)}
+ if(!Object.keys(actions).length)throw Error('This model has no skeletal animation clips');
+ controls.target.set(0,.9,0);controls.update();setAnimation('walk');status.textContent='Loaded: '+Object.keys(actions).join(', ')+' · Real rigged skeletal motion, not frame interpolation';
+},undefined,err=>{document.querySelector('#fallback').style.display='block';status.textContent='Public model failed to load: '+String(err?.message||err)});
+function setAnimation(name){if(!mixer)return;const a=actions[name];if(!a){status.textContent='Clip missing: '+name;return}if(active&&active!==a)active.fadeOut(.25);a.reset().fadeIn(.25).play();active=a;paused=false;for(const button of document.querySelectorAll('#panel button'))button.classList.toggle('active',button.id===name)}
+for(const name of ['walk','run','survey'])document.getElementById(name).onclick=()=>setAnimation(name);
+document.getElementById('pause').onclick=()=>{paused=!paused;document.getElementById('pause').textContent=paused?'Resume':'Pause';document.getElementById('pause').classList.toggle('active',paused)};
+document.getElementById('record').onclick=()=>{
+ if(!mixer){status.textContent='Wait for rigged model to load before recording';return}
+ if(!('MediaRecorder' in window)){status.textContent='MediaRecorder is not supported by this browser';return}
+ if(!canvas.captureStream){status.textContent='Canvas recording is not supported';return}
+ const mime=['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(t=>MediaRecorder.isTypeSupported(t));
+ if(!mime){status.textContent='No supported WebM recording codec';return}
+ const button=document.getElementById('record');button.disabled=true;const chunks=[];
+ const stream=canvas.captureStream(30),rec=new MediaRecorder(stream,{mimeType:mime});
+ rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+ rec.onerror=()=>{button.disabled=false;status.textContent='Recording failed'};
+ rec.onstop=()=>{stream.getTracks().forEach(t=>t.stop());button.disabled=false;
+  if(!chunks.length){status.textContent='Recording returned no media';return}
+  const blob=new Blob(chunks,{type:mime}),url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='rigged_fox_motion_reference.webm';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);
+  status.textContent='Saved 12-second real articulated motion reference (no voice)'};
+ try{setAnimation('walk');rec.start();status.textContent='Recording actual animated rig for 12 seconds';setTimeout(()=>{if(rec.state==='recording')rec.stop()},12000)}
+ catch(e){button.disabled=false;stream.getTracks().forEach(t=>t.stop());status.textContent='Recorder error: '+e.message}
+};
+function resize(){const w=box.clientWidth,h=box.clientHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false)}addEventListener('resize',resize);resize();
+let t=0;function tick(){requestAnimationFrame(tick);const dt=Math.min(clock.getDelta(),.06);if(!paused&&mixer){mixer.update(dt);t+=dt;foxPivot.position.set(Math.sin(t*.4)*.25,0,0);foxPivot.rotation.y=Math.sin(t*.25)*.3;}controls.update();renderer.render(scene,camera)}tick();
+</script></body></html>

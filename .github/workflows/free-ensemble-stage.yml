@@ -1,0 +1,99 @@
+name: Free Two-Actor Film Stage Integration
+on:
+  push:
+    branches: [autonomy-kids-v1]
+    paths:
+      - "studio/godot_ensemble_director.gd"
+      - "studio/install_ensemble.py"
+      - "test/services/test_ensemble.py"
+      - ".github/workflows/free-ensemble-stage.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  original-two-actor-staging:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test directed acting scene and preservation of licensed assets
+        run: python3 -m unittest -v test.services.test_ensemble
+
+      - name: Install Godot 4.6 — free renderer
+        run: |
+          curl -fL --retry 3 \
+            https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_linux.x86_64.zip \
+            -o /tmp/godot.zip
+          unzip -q /tmp/godot.zip -d /tmp
+          chmod +x /tmp/Godot_v4.6-stable_linux.x86_64
+
+      - name: Compile the two-actor cinematography director
+        run: |
+          mkdir -p /tmp/godot-parse
+          printf '[application]\nconfig/name="Studio2ActorQA"\n' >/tmp/godot-parse/project.godot
+          cp studio/godot_ensemble_director.gd /tmp/godot-parse/director.gd
+          /tmp/Godot_v4.6-stable_linux.x86_64 --headless --path /tmp/godot-parse \
+            --check-only --script res://director.gd
+
+      - name: Load real MIT/CC0 human skeletal and FACS source
+        run: |
+          git clone --depth=1 --single-branch https://github.com/ibrews/VitruvianGodot.git /tmp/vitruvian
+          test -s /tmp/vitruvian/godot_project/vitruvian_head.glb
+          test -s /tmp/vitruvian/godot_project/vitruvian_body.glb
+          grep -q "CC0" /tmp/vitruvian/NOTICE.md
+
+      - name: Install both characters and shared camera into same world
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from test.services.test_ensemble import EnsembleTests, STUDIO
+          from studio.export_facs_cast import export_cast
+          from studio.install_ensemble import install
+          t=EnsembleTests("test_ensemble_install_requires_audio_real_facs_and_two_actors")
+          t.setUp()
+          try:
+              proj=Path("/tmp/vitruvian/godot_project")
+              export_cast(t.cast_path,t.cues_dir,proj)
+              data=install(proj, STUDIO/"godot_facs_cast.gd", STUDIO/"godot_ensemble_director.gd")
+              assert len(data["actors"])==2 and data["speech_aligned"]
+              assert data["film_release_pass"] is False
+          finally:
+              t.doCleanups()
+          PY
+          timeout 120 /tmp/Godot_v4.6-stable_linux.x86_64 --headless \
+            --path /tmp/vitruvian/godot_project --editor --quit >/tmp/ensemble_import.log 2>&1 \
+            || { tail -100 /tmp/ensemble_import.log; exit 1; }
+
+      - name: Verify two active skeletal actors and directed shared camera
+        run: |
+          timeout 90 /tmp/Godot_v4.6-stable_linux.x86_64 --headless \
+            --path /tmp/vitruvian/godot_project \
+            res://studio_cast/starwood_duo_scene.tscn --quit-after 150 \
+            > /tmp/ensemble_run.log 2>&1 \
+            || { tail -100 /tmp/ensemble_run.log; exit 1; }
+          grep -q "REAL 3D ENSEMBLE ready: actors=2" /tmp/ensemble_run.log \
+            || { tail -100 /tmp/ensemble_run.log; exit 1; }
+          grep -q "FACS bound: luma" /tmp/ensemble_run.log \
+            || { tail -100 /tmp/ensemble_run.log; exit 1; }
+          grep -q "FACS bound: pip" /tmp/ensemble_run.log \
+            || { tail -100 /tmp/ensemble_run.log; exit 1; }
+          if grep -E "SCRIPT ERROR:|Parse Error:|Failed loading resource" /tmp/ensemble_run.log; then
+            echo "Rejecting scene with real runtime errors"
+            exit 1
+          fi
+          grep -E 'REAL 3D ENSEMBLE|FACS bound:' /tmp/ensemble_run.log
+
+      - name: Retain private quality receipts, not partial previews
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: starwood-two-actor-director-qa
+          path: |
+            /tmp/ensemble_run.log
+            /tmp/ensemble_import.log
+          retention-days: 2
+          if-no-files-found: warn
