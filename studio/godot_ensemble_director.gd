@@ -26,6 +26,8 @@ var _current_shot: int = -1
 var _story_timeline_completed: bool = false
 var _shots: Array = []
 var _bindings_evidence: Dictionary = {}
+var _last_body_action: Dictionary = {}
+var _performance_changes: int = 0
 
 func _ready() -> void:
     if not ResourceLoader.exists(ACTOR_SOURCE) or not ResourceLoader.exists(FACE_DRIVER):
@@ -89,6 +91,11 @@ func _spawn_cast() -> bool:
         if original_camera is Camera3D:
             original_camera.current = false
         actor.set("DUR", maxf(float(actor.get("DUR")), _duration + 2.0))
+        # The upstream demo chooses unrelated choreography by time; disable
+        # ONLY its showroom _process. Body AnimationPlayer and our expression
+        # driver remain active, with direction supplied from the actual script.
+        actor.set_process(false)
+        actor.set("_t", 0.0)
         var driver: Node = Node.new()
         driver.name = "Character_Expressive_Performance"
         driver.set_script(face_script)
@@ -166,17 +173,72 @@ func _process(delta: float) -> void:
     _elapsed += delta
     _play_narrator(_elapsed)
     _direct_camera(_elapsed, delta)
+    _direct_cast_performance(_elapsed, delta)
     # A designed key prop that reacts when a clue is found, not a generic pulse.
     var revelation: float = smoothstep(_duration * .51, _duration * .72, _elapsed)
     lantern.position.y = 2.5 + .32 * revelation
     lantern.scale = Vector3.ONE * (0.95 + 0.2 * revelation)
     if _elapsed >= _duration and not _story_timeline_completed:
+        if _performance_changes < 2:
+            push_error("No directed skeletal acting transitions; story may be static")
+            return
         _story_timeline_completed = true
         print("[starwood] WHOLE_DIALOGUE_TIMELINE_COMPLETED lines=", _lines.size(),
               " seconds=", _duration, " actors=", actors.size(),
+              " directed_acting_transitions=", _performance_changes,
               " film_ready=false")
     if _elapsed >= _duration + 1.0 and OS.has_environment("STARWOOD_ONE_SHOT"):
         get_tree().quit()
+
+func _action_for(speaker: String, active: String, emotion: String) -> String:
+    if active != speaker:
+        return "Turn" if emotion in ["wonder", "concern", "urgent"] else "Idle"
+    match emotion:
+        "excited", "hopeful":
+            return "Wave"
+        "concern", "urgent":
+            return "Turn"
+        "wonder":
+            return "Sway"
+        "gentle":
+            return "HappyIdle"
+        "curious":
+            return "Sway"
+        _:
+            return "Idle"
+
+
+func _direct_cast_performance(t: float, delta: float) -> void:
+    var line: Dictionary = {}
+    for entry in _lines:
+        if t >= float(entry["start"]) and t < float(entry["end"]):
+            line = entry
+            break
+    var speaking: String = str(line.get("speaker", "narrator"))
+    var emotion: String = str(line.get("emotion", "curious"))
+    for speaker in actors:
+        var actor: Node3D = actors[speaker] as Node3D
+        actor.set("_t", t) # shared clock for real phonemes and expression keys
+        var anim: AnimationPlayer = actor.get("anim") as AnimationPlayer
+        if anim == null:
+            push_error("Live body AnimationPlayer missing: " + str(speaker))
+            continue
+        var requested: String = _action_for(str(speaker), speaking, emotion)
+        if not anim.has_animation(requested):
+            if not anim.has_animation("Idle"):
+                push_error("Actor has no Idle skeletal action: " + str(speaker))
+                continue
+            requested = "Idle"
+        if _last_body_action.get(speaker, "") != requested:
+            anim.play(requested, 0.25)
+            _last_body_action[speaker] = requested
+            _performance_changes += 1
+        # No root object translation to fake a step. Animate on the actual rig,
+        # and keep each actor planted while delivering lines.
+        var hair_spring: Variant = actor.get("hair_spring")
+        if hair_spring is Object and hair_spring.has_method("step"):
+            hair_spring.call("step", delta)
+
 
 func _play_narrator(t: float) -> void:
     for i in range(_last_narrator + 1, _lines.size()):
