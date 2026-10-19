@@ -5,6 +5,9 @@ on:
     paths:
       - ".github/workflows/free-starwood-dialogue-stage.yml"
       - "studio/godot_ensemble_director.gd"
+      - "studio/godot_facs_cast.gd"
+      - "studio/cast_audio.py"
+      - "studio/rhubarb_sync.py"
   workflow_dispatch:
 
 permissions:
@@ -18,13 +21,37 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Retrieve this project's already-generated real TTS/phoneme evidence
-        uses: actions/download-artifact@v4
-        with:
-          name: unreviewed-starwood-scene1-dialogue
-          run-id: 39052694824
-          github-token: ${{ github.token }}
-          path: /tmp/real-cast
+      - name: Install local and free expressive voice tools on CPU
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq espeak-ng ffmpeg unzip
+          python -m pip install "kokoro>=0.9.4,<1.0" numpy soundfile
+
+      - name: Regenerate exact original 3-character dialogue without expiring run dependencies
+        env:
+          HF_HUB_DISABLE_TELEMETRY: "1"
+          TOKENIZERS_PARALLELISM: "false"
+          CUDA_VISIBLE_DEVICES: ""
+          OMP_NUM_THREADS: "4"
+        run: |
+          mkdir -p /tmp/real-cast/scene1_audio /tmp/real-cast/scene1_lipsync
+          python studio/cast_audio.py render --script studio/scene1_audio.json \
+            --out /tmp/real-cast/scene1_audio
+
+      - name: Generate local time-aligned actor mouth shapes (Rhubarb 1.14.0)
+        run: |
+          curl -fL --retry 3 --retry-delay 2 \
+            https://github.com/DanielSWolf/rhubarb-lip-sync/releases/download/v1.14.0/Rhubarb-Lip-Sync-1.14.0-Linux.zip \
+            -o /tmp/rhubarb.zip
+          mkdir -p /tmp/rhubarb
+          unzip -q /tmp/rhubarb.zip -d /tmp/rhubarb
+          find /tmp/rhubarb -type f -name rhubarb -exec chmod +x {} \;
+          RHUBARB_BIN="$(find /tmp/rhubarb -type f -name rhubarb | head -1)"
+          test -x "$RHUBARB_BIN"
+          python studio/rhubarb_sync.py \
+            --cast-report /tmp/real-cast/scene1_audio/cast_report.json \
+            --rhubarb "$RHUBARB_BIN" \
+            --out /tmp/real-cast/scene1_lipsync
 
       - name: Verify real 14-line, 3-voice complete spoken performance bundle
         run: |
