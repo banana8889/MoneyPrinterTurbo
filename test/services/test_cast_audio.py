@@ -72,7 +72,8 @@ class CastAudioTest(unittest.TestCase):
     def test_approval_is_never_inferred_from_audio_created(self):
         try:
             import numpy as np
-            import soundfile
+            import soundfile as soundfile_module
+            assert soundfile_module is not None
         except ImportError:
             self.skipTest("soundfile/numpy unavailable")
         def fake(model, line):
