@@ -5,6 +5,9 @@ on:
     paths:
       - "studio/free_toolchain.py"
       - "test/services/test_free_toolchain.py"
+      - "studio/film_shot_planner.py"
+      - "studio/season1_episode1_full.json"
+      - "test/services/test_film_shot_planner.py"
       - ".github/workflows/cinematic-toolchain-audit.yml"
   workflow_dispatch:
 
@@ -20,7 +23,8 @@ jobs:
 
       - name: Run 32-repository policy and hardware safeguard tests
         run: |
-          python3 -m unittest -v test.services.test_free_toolchain
+          python3 -m unittest -v test.services.test_free_toolchain test.services.test_film_shot_planner
+          python3 studio/film_shot_planner.py studio/season1_episode1_full.json --out /tmp/episode1_shot_plan.json
           python3 -m studio.free_toolchain select --vram 0 > /tmp/cpu_toolchain.json
           python3 -m studio.free_toolchain select --vram 24 > /tmp/gpu_toolchain.json
           python3 -m studio.free_toolchain inventory > /tmp/inventory.json
@@ -29,6 +33,10 @@ jobs:
           a=json.load(open("/tmp/cpu_toolchain.json"))
           b=json.load(open("/tmp/gpu_toolchain.json"))
           inv=json.load(open("/tmp/inventory.json"))
+          shots=json.load(open("/tmp/episode1_shot_plan.json"))
+          assert shots["film_ready"] is False and len(shots["timeline"])==84
+          assert 240 <= shots["story_duration_seconds"] <=480
+          assert len(shots["shots"])>=20
           assert len(inv)>=30
           assert not a["production_ready"] and not b["production_ready"]
           assert "automatic_skinning" not in a["selected"]
@@ -48,5 +56,6 @@ jobs:
             /tmp/cpu_toolchain.json
             /tmp/gpu_toolchain.json
             /tmp/inventory.json
+            /tmp/episode1_shot_plan.json
           retention-days: 5
           if-no-files-found: warn
