@@ -21,7 +21,7 @@ class EnsembleTests(FACSPipelineTests):
             (self.project/name).write_bytes(b"glTF" + b"\x00"*24)
 
     def test_ensemble_install_requires_audio_real_facs_and_two_actors(self):
-        m=export_cast(self.cast_path,self.cues_dir,self.project)
+        export_cast(self.cast_path,self.cues_dir,self.project)
         r=install(self.project,STUDIO/"godot_facs_cast.gd",
                   STUDIO/"godot_ensemble_director.gd")
         self.assertEqual(r["actors"],["luma","pip"])
