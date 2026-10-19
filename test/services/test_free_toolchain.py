@@ -21,7 +21,8 @@ class ToolchainPolicyTests(unittest.TestCase):
         out=t.select(192)
         self.assertEqual(out["selected"]["character_animation"]["name"],"Blender")
         self.assertNotIn("automatic_skinning",out["selected"])
-        self.assertEqual(out["selected"]["expressive_dialogue"]["name"],"Kokoro")
+        self.assertEqual(out["selected"]["expressive_dialogue"]["name"],"Chatterbox Multilingual V3")
+        self.assertFalse(out["selected"]["expressive_dialogue"]["integrated_and_previously_verified"])
 
     def test_noncommercial_tool_never_unlocks_even_with_overrides(self):
         v=next(x for x in t.TOOLS if x.name=="GVHMR")
