@@ -56,6 +56,8 @@ def inspect(path: Path, minimum_seconds=1.2, minimum_motion=.5) -> dict:
     meta=probe(path)
     if meta["width"]<320 or meta["height"]<180:
         raise RuntimeError("Render resolution below even internal QA level")
+    if abs(meta["width"] * 9 - meta["height"] * 16) > 0.01 * meta["height"] * 16:
+        raise RuntimeError("Unexpected aspect ratio; a 16:9 cinematic output is required")
     fps_num, fps_den=map(int,meta["fps"].split("/"))
     if fps_den <= 0 or fps_num/fps_den < 23.9:
         raise RuntimeError("Clip has fewer than 24 real frames per second")
