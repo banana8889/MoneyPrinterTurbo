@@ -14,10 +14,11 @@ class ToolchainPolicyTests(unittest.TestCase):
         out=t.select(0)
         self.assertFalse(out["production_ready"])
         self.assertNotIn("mesh_generation",out["selected"])
-        self.assertNotIn("automatic_skinning",out["selected"])
+        self.assertEqual(out["selected"]["automatic_skinning"]["name"],"SkinTokens")
+        self.assertFalse(out["selected"]["automatic_skinning"]["integrated_and_previously_verified"])
         self.assertNotIn("optional_video_enhancement",out["selected"])
 
-    def test_unverified_weights_are_blocked_by_default(self):
+    def test_github_screened_gpu_weights_are_not_falsely_integrated(self):
         out=t.select(192)
         self.assertEqual(out["selected"]["character_animation"]["name"],"Blender")
         self.assertNotIn("automatic_skinning",out["selected"])
