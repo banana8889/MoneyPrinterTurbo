@@ -8,6 +8,8 @@ on:
       - "studio/film_shot_planner.py"
       - "studio/season1_episode1_full.json"
       - "test/services/test_film_shot_planner.py"
+      - "studio/chatterbox_v3_cast.py"
+      - "test/services/test_chatterbox_v3_cast.py"
       - ".github/workflows/cinematic-toolchain-audit.yml"
   workflow_dispatch:
 
@@ -21,9 +23,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install local audio QA dependencies without loading large models
+        run: python3 -m pip install -q numpy soundfile
+
       - name: Run 32-repository policy and hardware safeguard tests
         run: |
-          python3 -m unittest -v test.services.test_free_toolchain test.services.test_film_shot_planner
+          python3 -m unittest -v test.services.test_free_toolchain test.services.test_film_shot_planner test.services.test_chatterbox_v3_cast
           python3 studio/film_shot_planner.py studio/season1_episode1_full.json --out /tmp/episode1_shot_plan.json
           python3 -m studio.free_toolchain select --vram 0 > /tmp/cpu_toolchain.json
           python3 -m studio.free_toolchain select --vram 24 > /tmp/gpu_toolchain.json
