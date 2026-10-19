@@ -89,7 +89,7 @@ def shot_type(index:int, act:int, speaker:str, line:dict, last_kind:str):
     text=line["text"].lower()
     if index == 0:
         return "establishing"
-    if act == 7 and ("door" in text or "stars" in text) and speaker=="narrator":
+    if act == 7 and speaker == "narrator":
         return "wide_reveal"
     if ("lantern" in text or "map" in text) and speaker=="narrator" and index%5==0:
         return "insert_lantern"
