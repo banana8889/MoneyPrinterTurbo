@@ -162,10 +162,10 @@ def compile_film(book: dict[str, Any], script: dict[str, Any],
             for who in ("luma", "pip"):
                 if who not in book.get("characters", {}):
                     missing.append(f"{who}.licensed_original_reference_and_rig")
-            for who in actor_speech:
+            for who in {d["speaker"] for d in speech}:
                 if who not in book.get("dialogue_audio", {}):
                     missing.append(f"{who}.authorized_recorded_audio")
-            if not book.get("performance_video"):
+            if not book.get("performance_video") or not Path(str(book.get("performance_video", ""))).is_file():
                 missing.append("licensed_directing_video_or_animal_motion")
             if not book.get("weights_cleared"):
                 missing.append("model_weights_and_upstream_model_licenses_reviewed")
@@ -233,7 +233,7 @@ def compile_film(book: dict[str, Any], script: dict[str, Any],
                 for name,value in identity.items()
             },
             "locations": {"loc_"+v:{"look_locked":False,"set_design_missing":True}
-                          for v in sorted(set(s["location"] for s in shots))},
+                          for v in sorted(set(s["location_ref"][4:] for s in shots))},
         },
         "memory": {"character_identity_lock":True,"outfit_lock":True,
                    "asset_rights_required":True,"motion_history_frames":5,
