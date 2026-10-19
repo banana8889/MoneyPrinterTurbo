@@ -196,6 +196,19 @@ func _drive_visemes(t: float) -> void:
         if _validated_shapes.has(mapped):
             _shape(str(_validated_shapes[mapped]), max_viseme_weight * strength)
     _shape("Mouth_Large_Opened", (0.12 if mouth in ["C","E","F"] else 0.30) * strength)
+    # Facial expressions must not stick to the mesh after a spoken line ends:
+    # otherwise two emotional beats sum into a frozen, doll-like face.
+    for em in EXPRESSION:
+        for shape in EXPRESSION[em]:
+            _shape(str(shape), 0.0)
+    # A short, separated eye blink. This is a real mesh deformation, never
+    # a frame cut; slight phase offset keeps ensemble actors from blinking
+    # identically at the same moment.
+    var phase: float = (0.53 if speaker == "pip" else 0.0)
+    var eye_period: float = 3.65
+    var bt: float = fposmod(t + phase, eye_period)
+    var eyelid: float = (sin(PI * bt / 0.16) if bt < 0.16 else 0.0)
+    _shape("Eyes_Closed_Max", maxf(0.0, eyelid))
     var line: Dictionary = _active_line(t)
     if not line.is_empty():
         var e: String = str(line.get("emotion","curious"))
