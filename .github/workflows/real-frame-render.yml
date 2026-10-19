@@ -5,6 +5,8 @@ on:
     paths:
       - "studio/film_render_quality_gate.py"
       - ".github/workflows/real-frame-render.yml"
+      - "studio/godot_ensemble_director.gd"
+      - "studio/godot_facs_cast.gd"
   workflow_dispatch:
 
 permissions:
@@ -45,6 +47,19 @@ jobs:
           grep -q "CC0" /tmp/vitruvian/NOTICE.md
           test -s /tmp/vitruvian/godot_project/vitruvian_head.glb
           test -s /tmp/vitruvian/godot_project/vitruvian_body.glb
+          # Upstream actor look-dev is 1280x1280 portrait; cinematic scenes need
+          # a real 16:9 viewport BEFORE MovieWriter starts, not just an
+          # ineffective --resolution override.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("/tmp/vitruvian/godot_project/project.godot")
+          c=p.read_text()
+          for old,new in [("window/size/viewport_width=1280","window/size/viewport_width=640"),
+                          ("window/size/viewport_height=1280","window/size/viewport_height=360")]:
+              assert old in c, f"Upstream viewport has changed: {old}"
+              c=c.replace(old,new)
+          p.write_text(c)
+          PY
 
       - name: Assemble cast with disposable offline test tones (technical proof only)
         run: |
@@ -86,6 +101,14 @@ jobs:
           set -e
           if [ "$rc" != 0 ]; then tail -110 /tmp/film_render.log; exit "$rc"; fi
           test -s /tmp/proof/real_rig_motion.avi
+          # No runtime errors or severed head/body alignment are acceptable,
+          # even if ffmpeg can decode the movie.
+          if grep -E '(^ERROR:|^SCRIPT ERROR:|DISCONNECTED_CHARACTER_HEAD)' /tmp/film_render.log; then
+            echo "Real renderer reported a rig/camera/runtime error."
+            exit 1
+          fi
+          grep -q 'HEAD_BODY_ALIGNMENT speaker=luma' /tmp/film_render.log
+          grep -q 'HEAD_BODY_ALIGNMENT speaker=pip' /tmp/film_render.log
           ffprobe -v error -show_entries format=duration,size -of default=noprint_wrappers=1 /tmp/proof/real_rig_motion.avi
 
       - name: Inspect actual frames, not still camera or story log
