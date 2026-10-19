@@ -1,0 +1,640 @@
+{
+  "version": 1,
+  "series": "Starwood",
+  "episode": 1,
+  "title": "The Missing Star",
+  "language": "en-US",
+  "format": "16:9 3D cinematic episodic adventure",
+  "status": "ORIGINAL_SCRIPT_NOT_FILM",
+  "target_audience": "family and children",
+  "estimated_words": 1014,
+  "estimated_duration_minutes_at_145_wpm": 7,
+  "production_notes": "7 dramatic story acts, 3 speaking identities, suspense through mystery and character growth rather than misleading urgency. Lines are for expressive human-quality voice acting and proper story-driven rigging; TTS generation or a headless scene does not certify an episode.",
+  "acts": [
+    {
+      "act": 1,
+      "name": "01 Cold open — constellation goes dark",
+      "dialogue_lines": 7
+    },
+    {
+      "act": 2,
+      "name": "02 Earlier that evening — friendship and flaws",
+      "dialogue_lines": 13
+    },
+    {
+      "act": 3,
+      "name": "03 Returning to the missing star",
+      "dialogue_lines": 10
+    },
+    {
+      "act": 4,
+      "name": "04 The glade that remembers",
+      "dialogue_lines": 16
+    },
+    {
+      "act": 5,
+      "name": "05 A clue that changes the question",
+      "dialogue_lines": 12
+    },
+    {
+      "act": 6,
+      "name": "06 The first door",
+      "dialogue_lines": 14
+    },
+    {
+      "act": 7,
+      "name": "07 Cliffhanger — answer and a deeper mystery",
+      "dialogue_lines": 12
+    }
+  ],
+  "lines": [
+    {
+      "speaker": "narrator",
+      "emotion": "wonder",
+      "text": "High above Starwood, the little northern star had watched over the forest for longer than anyone remembered.",
+      "act": 1,
+      "beat": "01 Cold open — constellation goes dark"
+    },
+    {
+      "speaker": "luma",
+      "emotion": "curious",
+      "text": "Pip. Wake up. The North Lantern is flickering.",
+      "act": 1,
+      "beat": "01 Cold open — constellation goes dark"
+    },
+    {
+      "speaker": "pip",
+      "emotion": "gentle",
+      "text": "Stars twinkle, Luma. That's what stars do. Unless... wait. That one isn't twinkling.",
+      "act": 1,
+      "beat": "01 Cold open — constellation goes dark"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "concern",
+      "text": "Its light folded inward, as if a golden eyelid had closed. Then the star disappeared.",
+      "act": 1,
+      "beat": "01 Cold open — constellation goes dark"
+    },
+    {
+      "speaker": "luma",
+      "emotion": "concern",
+      "text": "But it was right there. You saw it, didn't you?",
+      "act": 1,
+      "beat": "01 Cold open — constellation goes dark"
+    },
+    {
+      "speaker": "pip",
+      "emotion": "concern",
+      "text": "I saw it. And I think the forest saw it too.",
+      "act": 1,
+      "beat": "01 Cold open — constellation goes dark"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "wonder",
+      "text": "Far below them, every firefly stopped blinking at once. The entire glade held its breath.",
+      "act": 1,
+      "beat": "01 Cold open — constellation goes dark"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "gentle",
+      "text": "Only an hour earlier, the two friends had been racing home through the fern-lined paths of Starwood.",
+      "act": 2,
+      "beat": "02 Earlier that evening — friendship and flaws"
+    },
+    {
+      "speaker": "luma",
+      "emotion": "excited",
+      "text": "First one to the old observatory gets the last honey biscuit!",
+      "act": 2,
+      "beat": "02 Earlier that evening — friendship and flaws"
+    },
+    {
+      "speaker": "pip",
+      "emotion": "gentle",
+      "text": "Last time you said that, you ate the biscuit before I arrived.",
+      "act": 2,
+      "beat": "02 Earlier that evening — friendship and flaws"
+    },
+    {
+      "speaker": "luma",
+      "emotion": "excited",
+      "text": "That was a completely different biscuit. A very impatient biscuit.",
+      "act": 2,
+      "beat": "02 Earlier that evening — friendship and flaws"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "gentle",
+      "text": "Luma dashed between the trees, her turquoise scarf trailing behind her like a ribbon of sky.",
+      "act": 2,
+      "beat": "02 Earlier that evening — friendship and flaws"
+    },
+    {
+      "speaker": "pip",
+      "emotion": "concern",
+      "text": "Luma! The little bridge is loose. Slow down!",
+      "act": 2,
+      "beat": "02 Earlier that evening — friendship and flaws"
+    },
+    {
+      "speaker": "luma",
+      "emotion": "curious",
+      "text": "I know every stone of this bridge. Watch!",
+      "act": 2,
+      "beat": "02 Earlier that evening — friendship and flaws"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "concern",
+      "text": "The plank beneath her paw tipped with a creak. A shower of pebbles clattered into the stream.",
+      "act": 2,
+      "beat": "02 Earlier that evening — friendship and flaws"
+    },
+    {
+      "speaker": "luma",
+      "emotion": "concern",
+      "text": "Oh. That stone has definitely moved.",
+      "act": 2,
+      "beat": "02 Earlier that evening — friendship and flaws"
+    },
+    {
+      "speaker": "pip",
+      "emotion": "gentle",
+      "text": "Knowing a path isn't the same as noticing when it changes.",
+      "act": 2,
+      "beat": "02 Earlier that evening — friendship and flaws"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "gentle",
+      "text": "Pip offered a steady paw. Luma took it, though her ears dipped with embarrassment.",
+      "act": 2,
+      "beat": "02 Earlier that evening — friendship and flaws"
+    },
+    {
+      "speaker": "luma",
+      "emotion": "hopeful",
+      "text": "Tomorrow, I'll listen the first time. I promise.",
+      "act": 2,
+      "beat": "02 Earlier that evening — friendship and flaws"
+    },
+    {
+      "speaker": "pip",
+      "emotion": "gentle",
+      "text": "You can start tonight.",
+      "act": 2,
+      "beat": "02 Earlier that evening — friendship and flaws"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "wonder",
+      "text": "Now the promise felt unexpectedly important. The sky had changed, and neither friend knew why.",
+      "act": 3,
+      "beat": "03 Returning to the missing star"
+    },
+    {
+      "speaker": "luma",
+      "emotion": "curious",
+      "text": "Someone has to find out where the star went. We can't just sit here.",
+      "act": 3,
+      "beat": "03 Returning to the missing star"
+    },
+    {
+      "speaker": "pip",
+      "emotion": "concern",
+      "text": "Then we investigate. But we don't run toward the first mysterious light we see.",
+      "act": 3,
+      "beat": "03 Returning to the missing star"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "wonder",
+      "text": "As if the forest had heard him, a small golden lantern drifted from the shadows.",
+      "act": 3,
+      "beat": "03 Returning to the missing star"
+    },
+    {
+      "speaker": "luma",
+      "emotion": "excited",
+      "text": "It is the size of a pear. And it's floating by itself!",
+      "act": 3,
+      "beat": "03 Returning to the missing star"
+    },
+    {
+      "speaker": "pip",
+      "emotion": "curious",
+      "text": "Look at the glass. There are tiny symbols moving inside.",
+      "act": 3,
+      "beat": "03 Returning to the missing star"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "wonder",
+      "text": "Three markings glimmered against the gold: a star, a tree, and two small paw prints.",
+      "act": 3,
+      "beat": "03 Returning to the missing star"
+    },
+    {
+      "speaker": "luma",
+      "emotion": "curious",
+      "text": "Two paw prints. It knows we're here.",
+      "act": 3,
+      "beat": "03 Returning to the missing star"
+    },
+    {
+      "speaker": "pip",
+      "emotion": "concern",
+      "text": "Or it's waiting for two people. Those aren't always the same thing.",
+      "act": 3,
+      "beat": "03 Returning to the missing star"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "wonder",
+      "text": "The lantern waited until they were side by side. Only then did it move.",
+      "act": 3,
+      "beat": "03 Returning to the missing star"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "wonder",
+      "text": "It guided them between giant roots to a clearing scattered with smooth stones and pale blue flowers.",
+      "act": 4,
+      "beat": "04 The glade that remembers"
+    },
+    {
+      "speaker": "luma",
+      "emotion": "curious",
+      "text": "I've been through this forest a hundred times. How have I never seen this place?",
+      "act": 4,
+      "beat": "04 The glade that remembers"
+    },
+    {
+      "speaker": "pip",
+      "emotion": "gentle",
+      "text": "Maybe you ran past it a hundred times.",
+      "act": 4,
+      "beat": "04 The glade that remembers"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "wonder",
+      "text": "A soft sound came from under a leaf, not a cry exactly, more like a tiny bell caught in the wind.",
+      "act": 4,
+      "beat": "04 The glade that remembers"
+    },
+    {
+      "speaker": "luma",
+      "emotion": "curious",
+      "text": "The lantern is pointing to that tree. We should follow it.",
+      "act": 4,
+      "beat": "04 The glade that remembers"
+    },
+    {
+      "speaker": "pip",
+      "emotion": "concern",
+      "text": "Wait. Something is stuck under this leaf.",
+      "act": 4,
+      "beat": "04 The glade that remembers"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "gentle",
+      "text": "A silver-winged moth had become tangled in the thread of a fallen spiderweb.",
+      "act": 4,
+      "beat": "04 The glade that remembers"
+    },
+    {
+      "speaker": "luma",
+      "emotion": "concern",
+      "text": "If we stop, the lantern might leave us behind.",
+      "act": 4,
+      "beat": "04 The glade that remembers"
+    },
+    {
+      "speaker": "pip",
+      "emotion": "gentle",
+      "text": "Then we'll find it again. Right now, someone here needs help.",
+      "act": 4,
+      "beat": "04 The glade that remembers"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "gentle",
+      "text": "Pip held the leaf steady. Luma used one careful claw to loosen the fine strands without harming the moth.",
+      "act": 4,
+      "beat": "04 The glade that remembers"
+    },
+    {
+      "speaker": "luma",
+      "emotion": "gentle",
+      "text": "There. You can go. And I'm sorry we almost missed you.",
+      "act": 4,
+      "beat": "04 The glade that remembers"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "wonder",
+      "text": "The moth rose and circled Luma's scarf, leaving a trail of small blue lights.",
+      "act": 4,
+      "beat": "04 The glade that remembers"
+    },
+    {
+      "speaker": "pip",
+      "emotion": "curious",
+      "text": "Luma. Look behind you.",
+      "act": 4,
+      "beat": "04 The glade that remembers"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "wonder",
+      "text": "The lantern had not gone. It shone brighter than before, and its glass unfolded into a map.",
+      "act": 4,
+      "beat": "04 The glade that remembers"
+    },
+    {
+      "speaker": "luma",
+      "emotion": "hopeful",
+      "text": "So it wasn't asking us to hurry. It was asking us to notice.",
+      "act": 4,
+      "beat": "04 The glade that remembers"
+    },
+    {
+      "speaker": "pip",
+      "emotion": "gentle",
+      "text": "Some maps only open when you're looking at the right things.",
+      "act": 4,
+      "beat": "04 The glade that remembers"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "wonder",
+      "text": "On the map, the vanished star was drawn not above the trees, but below their roots.",
+      "act": 5,
+      "beat": "05 A clue that changes the question"
+    },
+    {
+      "speaker": "luma",
+      "emotion": "concern",
+      "text": "That's impossible. Stars belong in the sky.",
+      "act": 5,
+      "beat": "05 A clue that changes the question"
+    },
+    {
+      "speaker": "pip",
+      "emotion": "curious",
+      "text": "Maybe it's not a map of where the star belongs. Maybe it's a map of where it went.",
+      "act": 5,
+      "beat": "05 A clue that changes the question"
+    },
+    {
+      "speaker": "luma",
+      "emotion": "curious",
+      "text": "And these circles? They look like ripples in a pond.",
+      "act": 5,
+      "beat": "05 A clue that changes the question"
+    },
+    {
+      "speaker": "pip",
+      "emotion": "curious",
+      "text": "Listen. There's a sound beneath them.",
+      "act": 5,
+      "beat": "05 A clue that changes the question"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "concern",
+      "text": "Three slow knocks moved through the earth, so faint that the flowers barely trembled.",
+      "act": 5,
+      "beat": "05 A clue that changes the question"
+    },
+    {
+      "speaker": "luma",
+      "emotion": "concern",
+      "text": "What if someone took the star?",
+      "act": 5,
+      "beat": "05 A clue that changes the question"
+    },
+    {
+      "speaker": "pip",
+      "emotion": "gentle",
+      "text": "We have one missing star, one strange map, and three knocks. We don't know who did anything.",
+      "act": 5,
+      "beat": "05 A clue that changes the question"
+    },
+    {
+      "speaker": "luma",
+      "emotion": "gentle",
+      "text": "You're right. I was already deciding who to blame.",
+      "act": 5,
+      "beat": "05 A clue that changes the question"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "wonder",
+      "text": "The lantern warmed in Luma's paws, and a fourth symbol appeared: a small shield surrounding a spark.",
+      "act": 5,
+      "beat": "05 A clue that changes the question"
+    },
+    {
+      "speaker": "pip",
+      "emotion": "wonder",
+      "text": "A shield. Maybe somebody isn't stealing stars. Maybe somebody is protecting them.",
+      "act": 5,
+      "beat": "05 A clue that changes the question"
+    },
+    {
+      "speaker": "luma",
+      "emotion": "hopeful",
+      "text": "Then we need to find out what they're protecting them from.",
+      "act": 5,
+      "beat": "05 A clue that changes the question"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "wonder",
+      "text": "The map folded itself into the shape of a leaf and drifted toward the oldest tree in Starwood.",
+      "act": 6,
+      "beat": "06 The first door"
+    },
+    {
+      "speaker": "luma",
+      "emotion": "curious",
+      "text": "The Whispering Oak. My grandfather said its roots reach all the way to the underground river.",
+      "act": 6,
+      "beat": "06 The first door"
+    },
+    {
+      "speaker": "pip",
+      "emotion": "concern",
+      "text": "He also said not to follow noises under the roots without telling someone where you're going.",
+      "act": 6,
+      "beat": "06 The first door"
+    },
+    {
+      "speaker": "luma",
+      "emotion": "gentle",
+      "text": "Then we mark our path. Two stones at every turn, just like he taught us.",
+      "act": 6,
+      "beat": "06 The first door"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "gentle",
+      "text": "They placed a pale stone beside a dark one. The lantern hummed in approval.",
+      "act": 6,
+      "beat": "06 The first door"
+    },
+    {
+      "speaker": "pip",
+      "emotion": "hopeful",
+      "text": "See? Being careful doesn't mean we're afraid.",
+      "act": 6,
+      "beat": "06 The first door"
+    },
+    {
+      "speaker": "luma",
+      "emotion": "hopeful",
+      "text": "And being brave doesn't mean racing ahead.",
+      "act": 6,
+      "beat": "06 The first door"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "wonder",
+      "text": "Between the roots, a doorway appeared where there had only been bark a moment before.",
+      "act": 6,
+      "beat": "06 The first door"
+    },
+    {
+      "speaker": "luma",
+      "emotion": "concern",
+      "text": "Pip, can you see the writing above it?",
+      "act": 6,
+      "beat": "06 The first door"
+    },
+    {
+      "speaker": "pip",
+      "emotion": "curious",
+      "text": "Some of the letters are missing. It says, 'Only the light that is shared...'",
+      "act": 6,
+      "beat": "06 The first door"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "wonder",
+      "text": "Before he could finish, the lantern split its glow into two beams, one for each friend.",
+      "act": 6,
+      "beat": "06 The first door"
+    },
+    {
+      "speaker": "luma",
+      "emotion": "hopeful",
+      "text": "Maybe the rest of the message is ours to discover.",
+      "act": 6,
+      "beat": "06 The first door"
+    },
+    {
+      "speaker": "pip",
+      "emotion": "gentle",
+      "text": "Together, then.",
+      "act": 6,
+      "beat": "06 The first door"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "wonder",
+      "text": "They touched their two beams to the stone. The door opened, and the sound of a distant river rose to greet them.",
+      "act": 6,
+      "beat": "06 The first door"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "wonder",
+      "text": "Far below the forest floor, a thousand tiny lights pulsed in time with a heartbeat.",
+      "act": 7,
+      "beat": "07 Cliffhanger — answer and a deeper mystery"
+    },
+    {
+      "speaker": "luma",
+      "emotion": "wonder",
+      "text": "Pip. Those aren't reflections. They're stars.",
+      "act": 7,
+      "beat": "07 Cliffhanger — answer and a deeper mystery"
+    },
+    {
+      "speaker": "pip",
+      "emotion": "concern",
+      "text": "Then the missing star didn't vanish. It came down here.",
+      "act": 7,
+      "beat": "07 Cliffhanger — answer and a deeper mystery"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "concern",
+      "text": "A shape moved beyond the water, hidden behind a curtain of roots. The lantern's glow turned suddenly blue.",
+      "act": 7,
+      "beat": "07 Cliffhanger — answer and a deeper mystery"
+    },
+    {
+      "speaker": "luma",
+      "emotion": "concern",
+      "text": "Who's there? We don't want to hurt anyone.",
+      "act": 7,
+      "beat": "07 Cliffhanger — answer and a deeper mystery"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "wonder",
+      "text": "The three knocks came again. This time they sounded like an answer.",
+      "act": 7,
+      "beat": "07 Cliffhanger — answer and a deeper mystery"
+    },
+    {
+      "speaker": "pip",
+      "emotion": "curious",
+      "text": "Luma, look at the map. The shield is cracked.",
+      "act": 7,
+      "beat": "07 Cliffhanger — answer and a deeper mystery"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "concern",
+      "text": "High above them, another star blinked out. And every underground light flashed together.",
+      "act": 7,
+      "beat": "07 Cliffhanger — answer and a deeper mystery"
+    },
+    {
+      "speaker": "luma",
+      "emotion": "hopeful",
+      "text": "Whatever is happening, we're not leaving them alone.",
+      "act": 7,
+      "beat": "07 Cliffhanger — answer and a deeper mystery"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "wonder",
+      "text": "Deep in the darkness, a new door began to open. Something on the other side whispered their names.",
+      "act": 7,
+      "beat": "07 Cliffhanger — answer and a deeper mystery"
+    },
+    {
+      "speaker": "pip",
+      "emotion": "concern",
+      "text": "How does it know who we are?",
+      "act": 7,
+      "beat": "07 Cliffhanger — answer and a deeper mystery"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "wonder",
+      "text": "To be continued: The Path That Moves.",
+      "act": 7,
+      "beat": "07 Cliffhanger — answer and a deeper mystery"
+    }
+  ]
+}
