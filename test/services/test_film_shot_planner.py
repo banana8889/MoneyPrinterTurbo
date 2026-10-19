@@ -1,5 +1,4 @@
 """Narrative/shot sequencing production tests — no downloadable models."""
-import json
 import unittest
 from pathlib import Path
 
