@@ -74,8 +74,12 @@ func _spawn_cast() -> bool:
             push_error("Couldn't load skeletal actor")
             return false
         actor.name = speaker.capitalize() + "_ACTOR"
-        actor.position.x = (-actor_spacing if speaker == "luma" else actor_spacing)
+        # This upstream rig creates a globally aligned head inside _ready().
+        # Positioning the root BEFORE add_child() makes the body move but leaves
+        # the head at world origin. Add in neutral space first, then translate
+        # the entire completed bone hierarchy as one connected character.
         add_child(actor)
+        actor.position.x = (-actor_spacing if speaker == "luma" else actor_spacing)
         # A real CCD0 / FACS actor stage: head, body, bone attachments,
         # live animation player, face mesh, eyelids, eyes and hair.
         if not (actor.get("skel") is Skeleton3D) or not (actor.get("face_mi") is MeshInstance3D):
@@ -90,6 +94,16 @@ func _spawn_cast() -> bool:
         var original_camera: Variant = actor.get("camera")
         if original_camera is Camera3D:
             original_camera.current = false
+        var head: Variant = actor.get("head_rig")
+        if not (head is Node3D):
+            push_error("Character face is not attached to the skeletal body: " + speaker)
+            return false
+        var head_x_error: float = absf((head as Node3D).global_position.x - actor.global_position.x)
+        if head_x_error > 0.20:
+            push_error("DISCONNECTED_CHARACTER_HEAD: speaker=" + speaker +
+                       " offset=" + str(head_x_error))
+            return false
+        print("[starwood] HEAD_BODY_ALIGNMENT speaker=", speaker, " horizontal_offset=", head_x_error)
         actor.set("DUR", maxf(float(actor.get("DUR")), _duration + 2.0))
         # The upstream demo chooses unrelated choreography by time; disable
         # ONLY its showroom _process. Body AnimationPlayer and our expression
@@ -116,8 +130,8 @@ func _setup_camera() -> void:
     camera.near = 0.02
     camera.far = 90.0
     camera.position = Vector3(0, 1.8, 4.0)
-    camera.look_at(Vector3(0, 1.55, 0), Vector3.UP)
     add_child(camera)
+    camera.look_at(Vector3(0, 1.55, 0), Vector3.UP)
     camera.make_current()
     var params := CameraAttributesPractical.new()
     params.dof_blur_far_enabled = true
