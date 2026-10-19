@@ -42,7 +42,7 @@ class Candidate:
 
     @property
     def url(self):
-        return "https://github.com/" + self.repo if "/" in self.repo else self.repo
+        return self.repo if self.repo.startswith("https://") else "https://github.com/" + self.repo
 
 
 # Code/weight grants describe different artifacts. CPU-available does not mean
