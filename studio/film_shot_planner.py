@@ -125,6 +125,8 @@ def get_acting(speaker, emotion, act):
 
 
 def make_shot_plan(script, wpm=150):
+    if any(line.get('act') not in LOCATION_BY_ACT for line in script['lines']):
+        raise ValueError('Unknown act / location: canonical seven-act continuity broken')
     duration, timeline=estimate_timeline(script,wpm)
     # Arrange shots at line starts, but ensure no audience-fatiguing flash cuts;
     # consolidate consecutive lines in the same act until at least 5s.
@@ -136,13 +138,13 @@ def make_shot_plan(script, wpm=150):
         act=t["act"]
         speaker=t["speaker"]
         same_act=current is not None and current["act"]==act
-        current_length=(t["end"]-current["start"]) if current else 0
+        elapsed_before_line=(t["start"]-current["start"]) if current else 0
         # Trigger justified new shots when speaker changes after 5s, or an
         # act boundary, or a reveal. Avoid 1-frame camera changes.
-        threshold=(4.0 if source["emotion"]=="urgent" else 5.0)
+        threshold=(7.0 if source["emotion"]=="urgent" else 8.25)
         new_shot = (current is None or not same_act or
-                    (current_length>=threshold and
-                     (speaker!=current["last_speaker"] or current_length>=12.5)))
+                    (elapsed_before_line>=threshold and
+                     (speaker!=current["last_speaker"] or elapsed_before_line>=14.5)))
         if new_shot:
             k=shot_type(t["line_index"],act,speaker,source,shots[-1]["framing"] if shots else "")
             current={"shot":len(shots)+1,"act":act,"location":LOCATION_BY_ACT[act],
