@@ -121,10 +121,11 @@ class ScailExecutionTests(unittest.TestCase):
             Path(p["output"]).parent.mkdir(parents=True,exist_ok=True)
             Path(p["output"]).write_bytes(b"fake bytes"*2000)
             return SimpleNamespace(returncode=0, stderr="")
-        def fake_qc(path, minimum_seconds):
+        def fake_qc(path, minimum_seconds, minimum_fps):
             self.assertEqual(str(path), p["output"])
             self.assertEqual(minimum_seconds, 1.0)
-            return {"verified_actual_render":True, "changed_frame_fraction":.7}
+            self.assertEqual(minimum_fps, 15.9)
+            return {"verified_actual_render":True, "changed_frame_fraction":.7, "unmastered_native_fps":16}
         with patch.object(impl, "verify_model_source", return_value="1"*40):
             with patch.object(impl, "detected_gpu_mib", return_value=49152):
                 result = impl.execute(p, runner=fake_runner, inspect_video=fake_qc)
