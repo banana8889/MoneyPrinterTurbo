@@ -141,6 +141,32 @@ def plan(film_path, ledger_path, segment_id, output_dir):
             "technical_render_pass": False, "cinematic_release_pass": False}
 
 
+def verify_model_source(spec):
+    """Require pinned upstream commit and expected public original repository."""
+    repo = Path(spec["cwd"])
+    try:
+        commit = subprocess.check_output(
+            ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True,
+            timeout=20).strip().lower()
+        remote = subprocess.check_output(
+            ["git", "-C", str(repo), "remote", "get-url", "origin"],
+            text=True, timeout=20).strip().lower()
+        dirty = subprocess.check_output(
+            ["git", "-C", str(repo), "status", "--porcelain", "--untracked-files=no"],
+            text=True, timeout=20).strip()
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
+        raise RuntimeError("Cannot verify actual SCAIL-2 source checkout") from error
+    if not remote.rstrip("/").removesuffix(".git").endswith(
+        ("github.com/zai-org/scail-2", "github.com:zai-org/scail-2")
+    ):
+        raise PermissionError("Installed source is not the official SCAIL-2 remote")
+    if commit != spec["source_commit"]:
+        raise RuntimeError("Source checkout SHA differs from licensed model receipt")
+    if dirty:
+        raise RuntimeError("Local SCAIL-2 source has unrecorded modifications")
+    return commit
+
+
 def detected_gpu_mib():
     nvidia = shutil.which("nvidia-smi")
     if not nvidia:
@@ -157,6 +183,7 @@ def detected_gpu_mib():
 def execute(spec, *, timeout_seconds=7200, runner=None, inspect_video=None):
     if not 15 <= timeout_seconds <= 28800:
         raise ValueError("Local GPU timeout must be 15-28800 seconds")
+    verify_model_source(spec)
     gpu = detected_gpu_mib()
     output = Path(spec["output"])
     output.parent.mkdir(parents=True, exist_ok=True)
