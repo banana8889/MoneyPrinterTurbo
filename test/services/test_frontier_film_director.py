@@ -2,7 +2,6 @@
 
 No model checkpoints, video rendering or paid API calls during tests.
 """
-import json
 import tempfile
 import unittest
 from pathlib import Path
