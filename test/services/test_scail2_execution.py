@@ -108,9 +108,10 @@ class ScailExecutionTests(unittest.TestCase):
 
     def test_no_execution_without_local_gpu_even_with_input_files(self):
         p = self._plan()
-        with patch.object(impl, "detected_gpu_mib", side_effect=RuntimeError("no GPU")):
-            with self.assertRaises(RuntimeError):
-                impl.execute(p, runner=lambda *a, **k: self.fail("must not execute"))
+        with patch.object(impl, "verify_model_source", return_value="1"*40):
+            with patch.object(impl, "detected_gpu_mib", side_effect=RuntimeError("no GPU")):
+                with self.assertRaises(RuntimeError):
+                    impl.execute(p, runner=lambda *a, **k: self.fail("must not execute"))
 
     def test_valid_mocked_backend_never_claims_finished_cinema(self):
         p = self._plan()
@@ -124,8 +125,9 @@ class ScailExecutionTests(unittest.TestCase):
             self.assertEqual(str(path), p["output"])
             self.assertEqual(minimum_seconds, 1.0)
             return {"verified_actual_render":True, "changed_frame_fraction":.7}
-        with patch.object(impl, "detected_gpu_mib", return_value=49152):
-            result = impl.execute(p, runner=fake_runner, inspect_video=fake_qc)
+        with patch.object(impl, "verify_model_source", return_value="1"*40):
+            with patch.object(impl, "detected_gpu_mib", return_value=49152):
+                result = impl.execute(p, runner=fake_runner, inspect_video=fake_qc)
         self.assertTrue(result["technical_render_pass"])
         self.assertFalse(result["cinematic_release_pass"])
         self.assertEqual(result["character_identity_qa"],"NOT_REVIEWED")
@@ -137,15 +139,46 @@ class ScailExecutionTests(unittest.TestCase):
             Path(p["output"]).parent.mkdir(parents=True, exist_ok=True)
             Path(p["output"]).write_bytes(b"fake bytes"*2000)
             return SimpleNamespace(returncode=0, stderr="")
-        with patch.object(impl, "detected_gpu_mib", return_value=49000):
-            with self.assertRaises(RuntimeError):
-                impl.execute(p, runner=runner,
-                             inspect_video=lambda *a,**k: {"verified_actual_render":False})
+        with patch.object(impl, "verify_model_source", return_value="1"*40):
+            with patch.object(impl, "detected_gpu_mib", return_value=49000):
+                with self.assertRaises(RuntimeError):
+                    impl.execute(p, runner=runner,
+                                 inspect_video=lambda *a,**k: {"verified_actual_render":False})
         self.assertFalse(Path(p["output"]).with_suffix(".receipt.json").exists())
 
     def test_unsafe_segment_id_never_resolves_paths(self):
         with self.assertRaises(ValueError):
             self._plan("../../outside")
+
+    def test_pinned_upstream_source_must_match_exact_checkout(self):
+        p = self._plan()
+        with patch.object(impl.subprocess, "check_output",
+                          side_effect=[
+                              "2"*40+"\n",
+                              "https://github.com/zai-org/SCAIL-2.git\n",
+                              "",
+                          ]):
+            with self.assertRaisesRegex(RuntimeError, "SHA differs"):
+                impl.verify_model_source(p)
+
+    def test_official_source_rejects_unapproved_fork_or_dirty_checkout(self):
+        p = self._plan()
+        with patch.object(impl.subprocess, "check_output",
+                          side_effect=[
+                              "1"*40+"\n",
+                              "https://github.com/unknown/other-scail.git\n",
+                              "",
+                          ]):
+            with self.assertRaises(PermissionError):
+                impl.verify_model_source(p)
+        with patch.object(impl.subprocess, "check_output",
+                          side_effect=[
+                              "1"*40+"\n",
+                              "https://github.com/zai-org/SCAIL-2.git\n",
+                              " M generate.py\n",
+                          ]):
+            with self.assertRaisesRegex(RuntimeError, "unrecorded modifications"):
+                impl.verify_model_source(p)
 
     def test_gpu_probe_has_no_paid_fallback(self):
         with patch.object(impl.shutil, "which", return_value=None):
