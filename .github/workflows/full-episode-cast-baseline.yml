@@ -1,0 +1,88 @@
+name: One-off Entire Episode Offline Voice Timing QA
+on:
+  push:
+    branches: [autonomy-kids-v1]
+    paths:
+      - ".github/workflows/full-episode-cast-baseline.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  original-first-episode-private-voice-timing:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 58
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use locally executed free open-weights TTS (no cloud payment)
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq espeak-ng ffmpeg unzip
+          python -m pip install -q "kokoro>=0.9.4,<1.0" numpy soundfile
+
+      - name: Generate entire 84-utterance original episode audio offline
+        env:
+          HF_HUB_DISABLE_TELEMETRY: "1"
+          TOKENIZERS_PARALLELISM: "false"
+          CUDA_VISIBLE_DEVICES: ""
+          OMP_NUM_THREADS: "4"
+        run: |
+          python studio/cast_audio.py render \
+            --script studio/season1_episode1_full.json \
+            --out /tmp/starwood_full_audio
+
+      - name: Recover all 3 speaker recordings and timing evidence
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          p=pathlib.Path("/tmp/starwood_full_audio/cast_report.json")
+          m=json.loads(p.read_text())
+          assert m["rendered"]==84, m["rendered"]
+          assert len(m["cast"])==3
+          assert m["duration_seconds"]>=240, "Incomplete audio, short of episode scale"
+          assert not m["approval"] and not m["suitable_for_publication"]
+          assert all(pathlib.Path(x["audio"]).is_file() for x in m["lines"])
+          assert all(x["rms"]>.006 for x in m["lines"])
+          print(json.dumps({"fully_recorded_spoken_lines":len(m["lines"]),
+            "spoken_timeline_seconds":m["duration_seconds"],"characters":m["cast"],
+            "voice_naturalness":"NOT_REVIEWED","film_ready":False}))
+          PY
+
+      - name: Download open-source Rhubarb for native per-character lipsync
+        run: |
+          curl -fL --retry 3 \
+            https://github.com/DanielSWolf/rhubarb-lip-sync/releases/download/v1.14.0/Rhubarb-Lip-Sync-1.14.0-Linux.zip \
+            -o /tmp/rhubarb.zip
+          mkdir -p /tmp/rhubarb
+          unzip -q /tmp/rhubarb.zip -d /tmp/rhubarb
+          find /tmp/rhubarb -type f -name rhubarb -exec chmod +x {} \;
+          R="$(find /tmp/rhubarb -type f -name rhubarb | head -1)"
+          test -x "$R"
+          python studio/rhubarb_sync.py \
+            --cast-report /tmp/starwood_full_audio/cast_report.json \
+            --rhubarb "$R" --out /tmp/starwood_full_lipsync
+          python - <<'PY'
+          import json, pathlib
+          p=pathlib.Path("/tmp/starwood_full_lipsync/cues_manifest.json")
+          m=json.loads(p.read_text())
+          assert set(m["speaker_cues"])=={"luma","pip","narrator"}
+          count=0
+          for path in m["speaker_cues"].values():
+              cues=json.loads(pathlib.Path(path).read_text())["mouthCues"]
+              count+=len(cues)
+          assert count>500, count
+          print(json.dumps({"phoneme_cues":count, "human_review":False,"film_ready":False}))
+          PY
+
+      - name: Save receipts only (no amateur video or audio shared)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: private-episode-voice-time-and-phoneme-receipts
+          path: |
+            /tmp/starwood_full_audio/cast_report.json
+            /tmp/starwood_full_lipsync/*.json
+          retention-days: 5
+          if-no-files-found: warn
