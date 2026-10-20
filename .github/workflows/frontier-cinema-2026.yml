@@ -8,6 +8,8 @@ on:
       - "studio/film_shot_planner.py"
       - "studio/season1_episode1_full.json"
       - "test/services/test_frontier_film_director.py"
+      - "studio/scail2_execution.py"
+      - "test/services/test_scail2_execution.py"
       - ".github/workflows/frontier-cinema-2026.yml"
   workflow_dispatch:
 
@@ -22,7 +24,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Validate new frontier cinematic compiler without GPU or paid API
         run: |
-          python3 -m unittest -v test.services.test_frontier_film_director
+          python3 -m unittest -v test.services.test_frontier_film_director test.services.test_scail2_execution
           python3 -m studio.frontier_film_director studio/season1_episode1_full.json \
             --out /tmp/starwood_2026_film_dsl.json
           python3 - <<'PY'
