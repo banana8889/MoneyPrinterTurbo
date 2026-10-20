@@ -198,7 +198,9 @@ def execute(spec, *, timeout_seconds=7200, runner=None, inspect_video=None):
         raise RuntimeError("Local SCAIL-2 failed: "+(result.stderr or "")[-900:])
     if not output.is_file() or output.stat().st_size < 10000:
         raise RuntimeError("Model produced no real, playable movie file")
-    qc = inspect_video(output, minimum_seconds=1.0)
+    # SCAIL-2 native generation is commonly ~16fps; this gate verifies
+    # genuine moving pixels, NOT a 24fps mastered film (a later distinct gate).
+    qc = inspect_video(output, minimum_seconds=1.0, minimum_fps=15.9)
     if not qc.get("verified_actual_render"):
         raise RuntimeError("Decoded moving-frame quality gate did not pass")
     receipt = {
