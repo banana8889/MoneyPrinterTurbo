@@ -48,7 +48,7 @@ def frames(path: Path, width=128, height=72, fps=6):
     return np.frombuffer(cp.stdout, dtype="uint8").reshape(-1, height, width)
 
 
-def inspect(path: Path, minimum_seconds=1.2, minimum_motion=.5) -> dict:
+def inspect(path: Path, minimum_seconds=1.2, minimum_motion=.5, minimum_fps=24.0) -> dict:
     import numpy as np
     path=path.expanduser().resolve()
     if not path.is_file() or path.stat().st_size < 10000:
@@ -59,8 +59,13 @@ def inspect(path: Path, minimum_seconds=1.2, minimum_motion=.5) -> dict:
     if abs(meta["width"] * 9 - meta["height"] * 16) > 0.01 * meta["height"] * 16:
         raise RuntimeError("Unexpected aspect ratio; a 16:9 cinematic output is required")
     fps_num, fps_den=map(int,meta["fps"].split("/"))
-    if fps_den <= 0 or fps_num/fps_den < 23.9:
-        raise RuntimeError("Clip has fewer than 24 real frames per second")
+    if not 8 <= minimum_fps <= 120:
+        raise ValueError("Invalid raw-frame QA threshold")
+    if fps_den <= 0 or fps_num/fps_den < minimum_fps - .1:
+        raise RuntimeError(
+            f"Raw clip FPS {fps_num}/{fps_den} below required {minimum_fps}; "
+            "do not report it as 24fps mastered footage"
+        )
     if meta["duration"] < minimum_seconds:
         raise RuntimeError("The supposed animated scene is too short")
     frame_stack=frames(path)
@@ -80,6 +85,7 @@ def inspect(path: Path, minimum_seconds=1.2, minimum_motion=.5) -> dict:
             "sustained_pixel_motion": round(sustained,4),
             "changed_frame_fraction": round(different,4),
             "verified_actual_render": True,
+            "unmastered_native_fps": round(fps_num/fps_den, 4),
             "verified_skeletal_performance": False,
             "verified_emotional_acting": False,
             "verified_character_design": False,
