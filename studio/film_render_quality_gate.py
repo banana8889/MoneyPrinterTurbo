@@ -79,7 +79,7 @@ def inspect(path: Path, minimum_seconds=1.2, minimum_motion=.5, minimum_fps=24.0
     sustained = float(np.mean(baseline))
     different = float(np.mean(changes>minimum_motion))
     if sustained < minimum_motion or different < .20:
-        raise RuntimeError("Nearly static footage: no sustained pixel movement")
+        raise RuntimeError(f"Nearly static footage: sustained={sustained:.4f}, changed_fraction={different:.4f}, threshold={minimum_motion}; no falsely passed motion")
     return {**meta, "gray_mean": round(float(np.mean(frame_stack)),2),
             "sampled_frames": len(frame_stack),
             "sustained_pixel_motion": round(sustained,4),
