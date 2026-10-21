@@ -111,6 +111,7 @@ jobs:
           name: private-original-animal-cpu-render-qa
           path: |
             /tmp/private_technical/technical_motion_qc.json
+            /tmp/private_technical/fox_rabbit_real_3d.mp4
             /tmp/starwood_acts/stage_receipt.json
           retention-days: 3
           if-no-files-found: warn
