@@ -23,11 +23,11 @@ import json
 import math
 from pathlib import Path
 
-ACT_LOOK = {1:"night",2:"autumn",3:"night",4:"dusk",5:"dusk",6:"night",7:"night"}
+ACT_LOOK = {1:"dusk",2:"autumn",3:"dusk",4:"dusk",5:"dusk",6:"dusk",7:"night"}
 ACT_WEATHER = {1:"fireflies",2:"leaves",3:"fireflies",4:"fireflies",
                5:"fireflies",6:"fireflies",7:"fireflies"}
 VALID_EMOTION = {"wonder","curious","concern","gentle","excited","urgent","hopeful"}
-POS = {"luma":[-2.8,0.0],"pip":[2.6,0.3]}
+POS = {"luma":[-2.2,0.0],"pip":[2.1,0.3]}
 CODEC_CREDITS = {
   "engine":"vsim (c) 2026 vsim contributors, MIT",
   "fox":"Fox model PixelMannen CC0; rig+animation @tomkranis CC BY 4.0; conversion AsoboStudio/scurest CC BY 4.0",
@@ -141,18 +141,18 @@ def beats_for_act(story,timeline,act,technical_seconds=None):
                         "clip":"idle" if partner=="pip" else "Survey",
                         "at":0,"dur":max(.2,b-a-.3)})
         beats.append({"id":f"beat{i+1}","start":a,"end":b,
-                      "caption":f"Starwood — {story['acts'][act-1]['name'][:75]}",
+                      
                       "actions":actions})
         kind="wide" if i==0 or i%4==3 else "close" if i%4==2 else "follow"
         cam={"at":a,"dur":b-a,"shot":kind,
              "target":speaking if kind!="wide" else [0,0,0],
-             "angle":(-18 if i%2==0 else 20),"fov":43 if kind=="wide" else 36}
+             "angle":(-18 if i%2==0 else 20),"fov":40 if kind=="wide" else 36}
         if kind=="wide":
-            cam.update({"distance":8.5,"height":2.6})
+            cam.update({"distance":5.8,"height":1.8})
         elif kind=="close":
-            cam.update({"distance":3.3,"height":1.5})
+            cam.update({"distance":2.8,"height":1.2})
         else:
-            cam.update({"distance":4.5,"height":1.7})
+            cam.update({"distance":3.4,"height":1.4})
         camera.append(cam)
     return beats,camera,duration,t0
 
@@ -160,7 +160,7 @@ def generate(story,timeline,act,technical_seconds=None):
     beats,camera,duration,offset=beats_for_act(story,timeline,act,technical_seconds)
     if not beats or duration>90:
         raise ValueError("No renderable act")
-    doc={"version":"film3d-1","title":f"Starwood EP1 — Act {act}"[:60],
+    doc={"version":"film3d-1","title":"",
          "fps":24,"set":ACT_LOOK[act],"weather":ACT_WEATHER[act],
          "props":tree_props(act),
          "actors":[{"id":"luma","character":"fox","x":POS["luma"][0],"z":POS["luma"][1],"facing":POS["pip"]},
