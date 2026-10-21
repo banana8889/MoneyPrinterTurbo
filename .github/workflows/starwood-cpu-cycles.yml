@@ -1,0 +1,82 @@
+name: CPU Cycles Higher-Quality Lighting Test (One-off)
+on:
+  push:
+    branches: [autonomy-kids-v1]
+    paths:
+      - ".github/workflows/starwood-cpu-cycles.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-cycles-render:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 28
+    env:
+      LIBGL_ALWAYS_SOFTWARE: "1"
+      OMP_NUM_THREADS: "4"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install free Blender and MP4 encoder on standard CPU runner
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq blender ffmpeg
+          blender --background --version | head -5
+          ffmpeg -version | head -1
+      - name: Checkout reproducible MIT vsim rendering backend
+        run: |
+          git clone --depth=1 https://github.com/kunalkushwaha/vsim.git /tmp/vsim
+          git -C /tmp/vsim fetch --depth=1 origin 3f97faf85e46d2f9a122b0a8b8d3ccc0af598f91
+          git -C /tmp/vsim checkout --detach 3f97faf85e46d2f9a122b0a8b8d3ccc0af598f91
+          test "$(git -C /tmp/vsim rev-parse HEAD)" = 3f97faf85e46d2f9a122b0a8b8d3ccc0af598f91
+          corepack enable
+          cd /tmp/vsim
+          corepack pnpm install --frozen-lockfile
+          corepack pnpm run build
+      - name: Compile licensed animal-actor scenes without paid AI
+        run: |
+          python3 -m studio.vsim_cpu_episode \
+            --script studio/season1_episode1_full.json \
+            --out /tmp/starwood_cpu_cycles_source --act 3 --technical-seconds 4.5
+      - name: Render real Blender Cycles path-traced original 3D frames on CPU
+        run: |
+          mkdir -p /tmp/starwood_cycles_qc
+          cd /tmp/vsim
+          timeout 850 node apps/studio/cycles-render.mjs \
+            /tmp/starwood_cpu_cycles_source/starwood_act3.film3d.json \
+            /tmp/starwood_cycles_qc/cpu_cycles_technical.mp4 \
+            12 1 --from 0 --to 3 \
+            > /tmp/starwood_cycles_qc/cycles.log 2>&1 \
+            || { tail -100 /tmp/starwood_cycles_qc/cycles.log; exit 1; }
+          test -s /tmp/starwood_cycles_qc/cpu_cycles_technical.mp4
+      - name: Verify real rendered pixels without calling this a finished film
+        run: |
+          ffprobe -v error -show_entries stream=codec_name,nb_frames,avg_frame_rate,width,height \
+            -of json /tmp/starwood_cycles_qc/cpu_cycles_technical.mp4 \
+            > /tmp/starwood_cycles_qc/technical.json
+          python3 - <<'PY'
+          import json
+          x=json.load(open("/tmp/starwood_cycles_qc/technical.json"))
+          v=next(s for s in x["streams"] if s.get("width"))
+          assert v["width"]>=640 and v["height"]>=360
+          assert int(v.get("nb_frames",0))>=2
+          assert v["codec_name"]=="h264"
+          print({"renderer":"real Blender Cycles CPU","frames":v["nb_frames"],"cinema_approved":False})
+          PY
+          ffmpeg -y -v error -i /tmp/starwood_cycles_qc/cpu_cycles_technical.mp4 \
+            -frames:v 1 /tmp/starwood_cycles_qc/first_internal_frame.png
+      - name: Retain PRIVATE technical evidence; do not show partial videos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: internal-cpu-cycles-lighting-review
+          path: |
+            /tmp/starwood_cycles_qc/technical.json
+            /tmp/starwood_cycles_qc/first_internal_frame.png
+            /tmp/starwood_cycles_qc/cycles.log
+          retention-days: 2
+          if-no-files-found: warn
