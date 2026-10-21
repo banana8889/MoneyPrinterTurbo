@@ -21,12 +21,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Install free Blender and MP4 encoder on standard CPU runner
+      - name: Install official free Blender LTS with CPU OpenImageDenoise
         run: |
           sudo apt-get update -qq
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq blender ffmpeg
-          blender --background --version | head -5
-          ffmpeg -version | head -1
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ffmpeg xz-utils libegl1 libxrender1
+          curl -fL --retry 3 --retry-delay 2 \
+            https://download.blender.org/release/Blender4.5/blender-4.5.9-linux-x64.tar.xz \
+            -o /tmp/blender-lts.tar.xz
+          mkdir -p /tmp/blender45
+          tar -xJf /tmp/blender-lts.tar.xz -C /tmp/blender45
+          BIN="$(find /tmp/blender45 -type f -name blender | head -1)"
+          test -x "$BIN"
+          "$BIN" --background --version | head -5
+          echo "VSIM_BLENDER=$BIN" >> "$GITHUB_ENV"
+          command -v ffmpeg
+          echo "Using official Blender LTS archive because Ubuntu distro build lacks OpenImageDenoiser."
       - name: Checkout reproducible MIT vsim rendering backend
         run: |
           git clone --depth=1 https://github.com/kunalkushwaha/vsim.git /tmp/vsim
