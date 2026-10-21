@@ -15,6 +15,7 @@ SOURCE_RUN = "https://github.com/banana8889/MoneyPrinterTurbo/actions/runs/39403
 VOICE_ENGINE = "kokoro_82m_original_cast_not_human_approved"
 GAP = 0.25
 VERIFIED_TOTAL = 351.3492
+CANONICAL_DIALOGUE_FNV1A_32 = 0xea0948e4
 DURATIONS = tuple(float(x) for x in """
 5.636 2.7676 5.6895 5.4099 2.3668 3.0215 5.661 5.379 3.7558 4.1784
 3.8053 5.2923 3.0699 2.5443 4.8216 2.4093 3.7427 4.8597 2.8469 1.4487
@@ -35,6 +36,15 @@ def measured_voices(story):
     lines = story.get("lines", [])
     if len(lines) != len(DURATIONS):
         raise ValueError("Different screenplay may not reuse obsolete audio timings")
+    # Detect rewritten script with same line count; otherwise measured timing
+    # would silently drift from recorded speech. FNV-1a is a drift checksum,
+    # not a security signature or rights-clearance proof.
+    checksum=2166136261
+    for line in lines:
+        for ch in f"{line['speaker']}\t{line['text']}\n":
+            checksum=((checksum ^ ord(ch)) * 16777619) & 0xffffffff
+    if checksum != CANONICAL_DIALOGUE_FNV1A_32:
+        raise ValueError("Original episode script changed; rerecord/re-align its actual voices")
     current = 0.0
     timeline = []
     for i, (line, duration) in enumerate(zip(lines, DURATIONS)):
