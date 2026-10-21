@@ -1,0 +1,109 @@
+name: CPU-only Original Starwood 3D Rig Rendering Proof
+on:
+  push:
+    branches: [autonomy-kids-v1]
+    paths:
+      - "studio/vsim_cpu_episode.py"
+      - "test/services/test_vsim_cpu_episode.py"
+      - ".github/workflows/starwood-cpu-3d.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  free-3d-studio:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test all seven real rigged animal story acts
+        run: |
+          python3 -m unittest -v test.services.test_vsim_cpu_episode
+          python3 -m studio.vsim_cpu_episode \
+            --script studio/season1_episode1_full.json \
+            --out /tmp/starwood_acts
+          python3 - <<'PY'
+          import json,pathlib
+          root=pathlib.Path("/tmp/starwood_acts")
+          rec=json.loads((root/"stage_receipt.json").read_text())
+          assert len(rec["acts"])==7
+          assert rec["all_seven_acts_compiled"]
+          assert not rec["film_ready"]
+          assert len(list(root.glob("*.film3d.json")))==7
+          print("Original fox/rabbit seven-act film screenplay emitted, no external GPU.")
+          PY
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install pinned MIT 3D software-render engine
+        run: |
+          git clone --depth=1 https://github.com/kunalkushwaha/vsim.git /tmp/vsim
+          git -C /tmp/vsim fetch --depth 1 origin \
+            3f97faf85e46d2f9a122b0a8b8d3ccc0af598f91
+          git -C /tmp/vsim checkout --detach \
+            3f97faf85e46d2f9a122b0a8b8d3ccc0af598f91
+          test "$(git -C /tmp/vsim rev-parse HEAD)" = \
+            "3f97faf85e46d2f9a122b0a8b8d3ccc0af598f91"
+          grep -q "MIT License" /tmp/vsim/LICENSE
+          corepack enable
+          cd /tmp/vsim
+          corepack pnpm install --frozen-lockfile
+          corepack pnpm run build
+
+      - name: Validate original seven-act docs using native vsim Film3D compiler
+        run: |
+          cd /tmp/vsim
+          node --import tsx --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            import { parseFilm3D } from "./packages/film3d/src/schema.ts";
+            for (let i=1; i<=7; i++) {
+              const file="/tmp/starwood_acts/starwood_act"+i+".film3d.json";
+              const res=parseFilm3D(JSON.parse(readFileSync(file,"utf8")));
+              if (!res.doc) { console.error(file,res.errors); process.exit(1); }
+              console.log("Native FIlm3D VALID",i, res.doc.beats.length, "beats",res.doc.camera.length,"real camera segments");
+            }
+          '
+
+      - name: Construct a limited private technical motion proof with both fully rigged animals
+        run: |
+          python3 -m studio.vsim_cpu_episode \
+            --script studio/season1_episode1_full.json \
+            --out /tmp/starwood_smoke --act 3 --technical-seconds 4.5
+          mkdir -p /tmp/private_technical
+          cd /tmp/vsim
+          timeout 850 corepack pnpm render \
+            /tmp/starwood_smoke/starwood_act3.film3d.json \
+            -o /tmp/private_technical/fox_rabbit_real_3d.mp4 \
+            --workers 4
+          test -s /tmp/private_technical/fox_rabbit_real_3d.mp4
+
+      - name: Reject black, static, wrong-frame-rate or fake rendered footage
+        run: |
+          python3 -m pip install -q numpy
+          python3 studio/film_render_quality_gate.py \
+            /tmp/private_technical/fox_rabbit_real_3d.mp4 \
+            --min-seconds 3.8 \
+            --report /tmp/private_technical/technical_motion_qc.json
+          python3 - <<'PY'
+          import json
+          p=json.load(open("/tmp/private_technical/technical_motion_qc.json"))
+          assert p["verified_actual_render"] is True
+          assert p["fps"] in ("24/1","24/1.0") or abs(eval(p["fps"])-24) < .1
+          assert not p["cinematic_release_pass"]
+          print("Actual moving rigged 3D fox and rabbit produced on free CPU runner; artistic acceptance NOT claimed.")
+          PY
+
+      - name: Keep internal receipts, not rejected/partial user-facing previews
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: private-original-animal-cpu-render-qa
+          path: |
+            /tmp/private_technical/technical_motion_qc.json
+            /tmp/starwood_acts/stage_receipt.json
+          retention-days: 3
+          if-no-files-found: warn
