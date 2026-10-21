@@ -68,6 +68,12 @@ def line_timing(story,cast=None,wpm=150):
         if record["duration_seconds"]<mapped[-1]["end"]-0.03:
             raise ValueError("Spoken timeline truncation")
         return mapped,False
+    # First use the 84 actual recorded Kokoro timings from our successful
+    # original EP1 speech run, not the old 430s word-count estimate. This
+    # baseline is still synthetic/NOT human-quality approved.
+    if story.get("episode") == 1 and len(story.get("lines", [])) == 84:
+        from studio.episode1_measured_voice_timing import measured_voices
+        return measured_voices(story), False
     from studio.film_shot_planner import estimate_timeline
     _, est=estimate_timeline(story,wpm=wpm)
     return [{"start":v["start"],"end":v["end"],"act":v["act"],
@@ -191,7 +197,9 @@ def build(script,output,act=None,cast_report=None,technical_seconds=None):
              "assets_credits":CODEC_CREDITS,"acts":summaries,
              "all_seven_acts_compiled":len(summaries)==7,
              "has_hero_grade_original_characters":False,
-             "human_voice_acting_approved":False, "film_ready":False}
+             "human_voice_acting_approved":False,
+             "measured_voice_baseline_not_human_quality":not estimated,
+             "film_ready":False}
     (output/"stage_receipt.json").write_text(json.dumps(receipt,indent=2),
                                                encoding="utf-8")
     return receipt
