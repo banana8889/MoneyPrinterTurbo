@@ -68,6 +68,13 @@ jobs:
             }
           '
 
+      - name: Install missing local film encoder on standard Ubuntu CPU runner
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ffmpeg
+          command -v ffmpeg
+          command -v ffprobe
+
       - name: Construct a limited private technical motion proof with both fully rigged animals
         run: |
           python3 -m studio.vsim_cpu_episode \
