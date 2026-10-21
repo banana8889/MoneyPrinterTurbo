@@ -129,7 +129,7 @@ def beats_for_act(story,timeline,act,technical_seconds=None):
         # Vary by emotional intent but keep silhouettes in stage coordinates.
         if (i+act)%3==0 and b-a>=3.5:
             old=pos[speaking]
-            target=[round(max(-3.2,min(3.2,old[0]+(.55 if speaking=="luma" else -.55))),2),old[1]]
+            target=[round(max(-3.2,min(3.2,old[0]+(1.75 if speaking=="luma" else -1.75))),2),old[1]]
             actions.append({"do":"move","actor":speaking,"to":target,
                             "at":1.0,"dur":min(2.4,b-a-1.2),"gait":"walk"})
             pos[speaking]=target
