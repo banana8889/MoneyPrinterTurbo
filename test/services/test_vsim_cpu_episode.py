@@ -62,6 +62,28 @@ class VsimCPUFilmTests(unittest.TestCase):
             self.assertFalse(out["acts"][0]["estimated_voice_timing"])
             self.assertFalse(out["film_ready"])
 
+    def test_entire_original_film_now_uses_measured_five_minute_voice(self):
+        from studio.episode1_measured_voice_timing import measured_voices, VERIFIED_TOTAL
+        story = read_story(SCRIPT)
+        t = measured_voices(story)
+        self.assertEqual(len(t), 84)
+        self.assertAlmostEqual(t[-1]["end"], 351.3492, places=3)
+        self.assertAlmostEqual(VERIFIED_TOTAL, 351.3492, places=4)
+        with tempfile.TemporaryDirectory() as d:
+            rec=build(SCRIPT,d)
+            self.assertEqual(len(rec["acts"]),7)
+            self.assertFalse(rec["acts"][0]["estimated_voice_timing"])
+            self.assertTrue(rec["measured_voice_baseline_not_human_quality"])
+            self.assertGreater(sum(x["duration_seconds"] for x in rec["acts"]), 340.0)
+            self.assertLess(sum(x["duration_seconds"] for x in rec["acts"]), VERIFIED_TOTAL)
+
+    def test_changed_screenplay_must_re_record_before_reusing_old_timecodes(self):
+        from studio.episode1_measured_voice_timing import measured_voices
+        story=read_story(SCRIPT)
+        story["lines"][5]["text"]="A new unauthorized substitution."
+        with self.assertRaisesRegex(ValueError,"rerecord"):
+            measured_voices(story)
+
     def test_missing_or_mismatched_voice_receipt_is_blocked(self):
         story=read_story(SCRIPT)
         with tempfile.TemporaryDirectory() as d:
