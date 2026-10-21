@@ -100,12 +100,16 @@ def beats_for_act(story,timeline,act,technical_seconds=None):
         if not .5<=technical_seconds<=15:
             raise ValueError("Technical test span must be between 0.5 and 15s")
         end=min(end,t0+technical_seconds)
-    duration=round(end-t0,4)
+    # Film3D's upstream validator uses STRICT JS float equality for camera
+    # segment chaining; quantize to binary-exact 1/16-second timecodes.
+    # Avoid the 31.560000000000002 vs 31.56 failure of decimal floats.
+    tick=lambda x:round(x*16)/16
+    duration=tick(end-t0)
     # Beats are contiguous with no duplicate camera paths and no hard cut
     # every utterance. Let actors perform for 8-13 seconds between edits.
     boundaries=[0.0]
     for row in rows:
-        s=round(max(0,min(duration,row["start"]-t0)),4)
+        s=tick(max(0,min(duration,row["start"]-t0)))
         if s-boundaries[-1]>=9 and duration-s>=2.5:
             boundaries.append(s)
     boundaries.append(duration)
@@ -140,7 +144,7 @@ def beats_for_act(story,timeline,act,technical_seconds=None):
                       "caption":f"Starwood — {story['acts'][act-1]['name'][:75]}",
                       "actions":actions})
         kind="wide" if i==0 or i%4==3 else "close" if i%4==2 else "follow"
-        cam={"at":a,"dur":round(b-a,4),"shot":kind,
+        cam={"at":a,"dur":b-a,"shot":kind,
              "target":speaking if kind!="wide" else [0,0,0],
              "angle":(-18 if i%2==0 else 20),"fov":43 if kind=="wide" else 36}
         if kind=="wide":
