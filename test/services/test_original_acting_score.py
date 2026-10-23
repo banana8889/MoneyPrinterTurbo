@@ -1,6 +1,5 @@
 """Integrity tests for exact original 84-line, 5m51s two-actor performance."""
 import json
-import tempfile
 import unittest
 from pathlib import Path
 
@@ -33,8 +32,8 @@ class OriginalActingScoreTests(unittest.TestCase):
 
     def test_genuine_listener_reaction_not_freezing(self):
         score=build(story(SRC))
-        for idx,(a,b) in enumerate(zip(score["actor_controls"]["luma"],
-                                       score["actor_controls"]["pip"])):
+        for a,b in zip(score["actor_controls"]["luma"],
+                       score["actor_controls"]["pip"]):
             self.assertEqual(a["line_number"],b["line_number"])
             self.assertEqual(a["start"],b["start"])
             self.assertEqual(a["end"],b["end"])
