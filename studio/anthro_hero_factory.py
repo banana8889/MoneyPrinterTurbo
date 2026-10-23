@@ -2,8 +2,9 @@
 
 This is a non-paid, deterministic starter character kit, not a cinematic
 character sculpt nor a finished episode. It does not borrow quadruped stock
-characters. Each mesh uses real Armature bones, skin weights (via bone
-parenting), actual keyed locomotion, eyebrow and mouth facial blendshapes.
+characters. Separate rigid mesh components are parented to actual Armature bones (NOT
+smooth skin weights). Keyed skeletal locomotion plus eyebrow/mouth/eye
+morph targets provide controllable animation; cinematic acting is not proven.
 The two original identities differ in profile, proportions, colors and ears.
 
 Run on an official Blender 4.5 build:
@@ -97,8 +98,13 @@ def make():
                 v.co.y=y-.06*max(0,1-abs(x)/.3)
                 v.co.z=z+.10*(abs(x)/.3)
             elif shape=="talk":
-                v.co.z=z*.48
-                v.co.y=y-.065
+                # Open the speech aperture; the old shape squeezed lips shut.
+                v.co.z=z*1.85-.035
+                v.co.y=y-.025
+            elif shape=="brow_raise":
+                v.co.z=z+.085
+            elif shape=="brow_worry":
+                v.co.z=z-.045
             elif shape=="blink":
                 v.co.z=z*.12
         return key
@@ -131,12 +137,15 @@ def make():
         bpy.ops.object.mode_set(mode="OBJECT")
         def add_piece(part, bone, at, size,mat):
             ob=ellipse(name+" | "+part,(part_x+at[0],at[1],at[2]),size,mat)
+            rest_world=ob.matrix_world.copy()
             ob.parent=arm
             ob.parent_type="BONE"
             ob.parent_bone=bone
-            # With inverse applied in Blender world coords, controls are
-            # correctly attached to actual evaluated bone transforms.
-            ob.matrix_parent_inverse=arm.matrix_world.inverted()
+            # BONE parent world matrix includes bone rest transform.
+            # Using armature inverse alone detached parts on joint rotation.
+            rest_parent=arm.matrix_world @ arm.data.bones[bone].matrix_local
+            ob.matrix_parent_inverse=rest_parent.inverted()
+            ob.matrix_world=rest_world
             props.append((name,part,bone,ob.name))
             return ob
         add_piece("torso","spine",(0,0,1.30),(.35,.24,.51),fur)
@@ -145,7 +154,9 @@ def make():
         add_piece("muzzle","head",(0,-.40,1.93),(.24,.155,.16),cream)
         for side in (-1,1):
             s="L" if side<0 else "R"
-            add_piece("eyebrow"+s,"head",(side*.165,-.332,2.23),(.12,.031,.032),dark)
+            brow=add_piece("eyebrow"+s,"head",(side*.165,-.332,2.23),(.12,.031,.032),dark)
+            face_key(brow,"BrowsUp","brow_raise")
+            face_key(brow,"Worry","brow_worry")
             e=add_piece("eye"+s,"head",(side*.157,-.325,2.105),(.112,.053,.136),eye)
             face_key(e,"Blink", "blink")
             add_piece("pupil"+s,"head",(side*.156,-.373,2.10),(.05,.021,.075),dark)
@@ -218,6 +229,10 @@ def make():
                     for frame in (1,opts.frames//2,opts.frames):
                         block.value=.10 if frame==1 else .45 if frame==opts.frames//2 else .10
                         block.keyframe_insert(data_path="value",frame=frame,group="Emotion")
+                elif block.name in ("BrowsUp","Worry"):
+                    for frame,val in ((1,.08),(opts.frames//2,.38),(opts.frames,.08)):
+                        block.value=val if block.name=="BrowsUp" else val*.55
+                        block.keyframe_insert(data_path="value",frame=frame,group="Expressive Brow")
                 elif block.name=="Blink":
                     for frame in range(1,opts.frames+1,24):
                         for delay,val in ((0,0),(1,1),(3,0)):
@@ -266,6 +281,9 @@ def make():
         "armatures":2,"bone_count_each":13,
         "material_names":sorted(mats),
         "true_facial_shapekeys":True,
+        "bone_attached_part_count":len(props),
+        "skin_weights":False,
+        "rig_attachment_evaluation_pending":True,
         "original_actors_not_stock_quadrupeds":True,
         "facial_acting_adequacy":"NOT_REVIEWED",
         "full_body_performance_adequacy":"NOT_REVIEWED",
