@@ -4,6 +4,7 @@ on:
     branches: [autonomy-kids-v1]
     paths:
       - "studio/anthro_hero_factory.py"
+      - "studio/rig_qa_blender.py"
       - ".github/workflows/starwood-original-bipeds.yml"
   workflow_dispatch:
 
@@ -60,6 +61,21 @@ jobs:
              --python /tmp/starwood_original/audit.py > /tmp/starwood_original/audit.log 2>&1 \
             || { tail -120 /tmp/starwood_original/audit.log; exit 1; }
           grep ORIGINAL_TWO_BIPED_ACTORS_PASS /tmp/starwood_original/audit.log
+      - name: Evaluate character heads/body attachments and true face acting through full 72 frames
+        run: |
+          "$BLENDER" --background /tmp/starwood_original/luma_pip.blend \
+            --python studio/rig_qa_blender.py -- \
+            --report /tmp/starwood_original/rig_geometry_qa.json \
+            > /tmp/starwood_original/rig_geometry.log 2>&1 \
+            || { tail -140 /tmp/starwood_original/rig_geometry.log; exit 1; }
+          grep ORIGINAL_RIG_GEOMETRY_EVALUATED_OK /tmp/starwood_original/rig_geometry.log
+          python3 - <<'PY'
+          import json
+          d=json.load(open("/tmp/starwood_original/rig_geometry_qa.json"))
+          assert d["skeleton_and_face_qc"] is True
+          assert d["cinematic_performance_verified"] is False
+          assert d["film_ready"] is False
+          PY
       - name: Render internal single-frame rig placement/lighting receipt
         run: |
           "$BLENDER" --background -t 4 /tmp/starwood_original/luma_pip.blend \
@@ -78,5 +94,7 @@ jobs:
             /tmp/starwood_original/build.log
             /tmp/starwood_original/render.log
             /tmp/starwood_original/rig_0001.png
+            /tmp/starwood_original/rig_geometry.log
+            /tmp/starwood_original/rig_geometry_qa.json
           retention-days: 2
           if-no-files-found: warn
