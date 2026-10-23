@@ -15,7 +15,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import math
 from pathlib import Path
 
 from studio.episode1_measured_voice_timing import measured_voices
@@ -86,7 +85,6 @@ def build(script: dict) -> dict:
     lines=script["lines"]
     if len(original)!=len(lines) or len(original)!=84:
         raise RuntimeError("Canonical measured dialogue mismatch")
-    durations=[(row["start"], row["end"]) for row in original]
     controls={actor: [] for actor in ACTORS}
     shots=[]
     act_coverage={}
