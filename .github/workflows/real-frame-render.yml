@@ -1,0 +1,140 @@
+name: One-Off Real-Frame Cinematic Rendering Gate
+on:
+  push:
+    branches: [autonomy-kids-v1]
+    paths:
+      - "studio/film_render_quality_gate.py"
+      - ".github/workflows/real-frame-render.yml"
+      - "studio/godot_ensemble_director.gd"
+      - "studio/godot_facs_cast.gd"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  actual-pixels-not-static-proofs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 23
+    env:
+      LIBGL_ALWAYS_SOFTWARE: "1"
+      GALLIUM_DRIVER: llvmpipe
+      MESA_GL_VERSION_OVERRIDE: "4.5"
+      GODOT_LOG_LEVEL: "info"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install free video and software-rendering dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq xvfb libgl1-mesa-dri mesa-utils ffmpeg python3-numpy python3-pil unzip
+          python3 - <<'PY'
+          import numpy,PIL
+          print("numpy",numpy.__version__,"Pillow",PIL.__version__)
+          PY
+
+      - name: Download Godot 4.6 open-source film renderer
+        run: |
+          curl -fL --retry 3 \
+            https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_linux.x86_64.zip \
+            -o /tmp/godot.zip
+          unzip -q /tmp/godot.zip -d /tmp
+          chmod +x /tmp/Godot_v4.6-stable_linux.x86_64
+
+      - name: Import licensable 3D human rig and face (not the final original heroes)
+        run: |
+          git clone --depth 1 https://github.com/ibrews/VitruvianGodot.git /tmp/vitruvian
+          grep -q "CC0" /tmp/vitruvian/NOTICE.md
+          test -s /tmp/vitruvian/godot_project/vitruvian_head.glb
+          test -s /tmp/vitruvian/godot_project/vitruvian_body.glb
+          # Upstream actor look-dev is 1280x1280 portrait; cinematic scenes need
+          # a real 16:9 viewport BEFORE MovieWriter starts, not just an
+          # ineffective --resolution override.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("/tmp/vitruvian/godot_project/project.godot")
+          c=p.read_text()
+          for old,new in [("window/size/viewport_width=1280","window/size/viewport_width=640"),
+                          ("window/size/viewport_height=1280","window/size/viewport_height=360")]:
+              assert old in c, f"Upstream viewport has changed: {old}"
+              c=c.replace(old,new)
+          # Film still needs scene meaning, but software 3D supersampling=2 is
+          # 4x the pixel work and can time out on the free CPU test runner.
+          assert "scaling_3d/scale=2.0" in c
+          c=c.replace("scaling_3d/scale=2.0","scaling_3d/scale=1.0")
+          p.write_text(c)
+          PY
+
+      - name: Assemble cast with disposable offline test tones (technical proof only)
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from test.services.test_ensemble import EnsembleTests, STUDIO
+          from studio.export_facs_cast import export_cast
+          from studio.install_ensemble import install
+          f=EnsembleTests("test_ensemble_install_requires_audio_real_facs_and_two_actors")
+          f.setUp()
+          try:
+            project=Path("/tmp/vitruvian/godot_project")
+            export_cast(f.cast_path,f.cues_dir,project)
+            result=install(project,STUDIO/"godot_facs_cast.gd",STUDIO/"godot_ensemble_director.gd")
+            assert not result["film_release_pass"]
+            assert result["real_skeletal_models"]
+          finally:
+            f.doCleanups()
+          PY
+          /tmp/Godot_v4.6-stable_linux.x86_64 --headless \
+            --path /tmp/vitruvian/godot_project --editor --quit \
+            > /tmp/godot_import.log 2>&1 || { tail -90 /tmp/godot_import.log; exit 1; }
+
+      - name: Render actual film frames with software GPU and sound (NOT headless dummy)
+        run: |
+          mkdir -p /tmp/proof
+          # Crucial: xvfb is a REAL software GL display. Do NOT use --headless
+          # because dummy rendering may pass startup tests but produce no images.
+          set +e
+          timeout 240 xvfb-run -a -s "-screen 0 1024x768x24" \
+            /tmp/Godot_v4.6-stable_linux.x86_64 \
+            --path /tmp/vitruvian/godot_project \
+            --rendering-method gl_compatibility \
+            --write-movie /tmp/proof/real_rig_motion.avi --fixed-fps 24 \
+            --resolution 640x360 --quit-after 30 \
+            res://studio_cast/starwood_duo_scene.tscn \
+            > /tmp/film_render.log 2>&1
+          rc=$?
+          set -e
+          if [ "$rc" != 0 ]; then tail -110 /tmp/film_render.log; exit "$rc"; fi
+          test -s /tmp/proof/real_rig_motion.avi
+          # No runtime errors or severed head/body alignment are acceptable,
+          # even if ffmpeg can decode the movie.
+          if grep -E '(^ERROR:|^SCRIPT ERROR:|DISCONNECTED_CHARACTER_HEAD)' /tmp/film_render.log; then
+            echo "Real renderer reported a rig/camera/runtime error."
+            exit 1
+          fi
+          grep -q 'HEAD_BODY_ALIGNMENT speaker=luma' /tmp/film_render.log
+          grep -q 'HEAD_BODY_ALIGNMENT speaker=pip' /tmp/film_render.log
+          ffprobe -v error -show_entries format=duration,size -of default=noprint_wrappers=1 /tmp/proof/real_rig_motion.avi
+
+      - name: Inspect actual frames, not still camera or story log
+        run: |
+          python3 studio/film_render_quality_gate.py \
+            /tmp/proof/real_rig_motion.avi --min-seconds 1.15 \
+            --report /tmp/proof/technical_qc.json
+          ffmpeg -y -nostdin -v error -i /tmp/proof/real_rig_motion.avi \
+            -c:v libx264 -preset veryfast -crf 21 -pix_fmt yuv420p \
+            -c:a aac -b:a 128k -movflags +faststart \
+            /tmp/proof/internal_motion.mp4
+          ffprobe -v error -show_entries stream=codec_name,width,height -of json /tmp/proof/internal_motion.mp4
+          echo "NOT READY for publication or external preview."
+
+      - name: Store only internal evidence for analysis, not user-facing previews
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: private-real-frame-rig-motion-evidence
+          path: |
+            /tmp/proof/technical_qc.json
+            /tmp/proof/internal_motion.mp4
+            /tmp/film_render.log
+          retention-days: 2
+          if-no-files-found: warn

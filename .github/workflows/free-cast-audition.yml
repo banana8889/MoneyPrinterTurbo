@@ -1,0 +1,85 @@
+name: Free Cast Voice Audition (One-off Push)
+on:
+  push:
+    branches: [autonomy-kids-v1]
+    paths:
+      - ".github/workflows/free-cast-audition.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  voice-audition:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install free CPU voice tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq espeak-ng ffmpeg
+          python -m pip install --upgrade pip
+          python -m pip install "kokoro>=0.9.4,<1.0" numpy soundfile
+      - name: Generate original three-cast scene speech (no paid APIs)
+        env:
+          HF_HUB_DISABLE_TELEMETRY: "1"
+          TOKENIZERS_PARALLELISM: "false"
+          CUDA_VISIBLE_DEVICES: ""
+          OMP_NUM_THREADS: "4"
+        run: |
+          python studio/cast_audio.py render --script studio/scene1_audio.json --out out/scene1_audio
+      - name: Check audio and prevent false quality claims
+        run: |
+          python - <<'PY'
+          import json, pathlib, subprocess
+          p=pathlib.Path("out/scene1_audio/cast_report.json")
+          m=json.loads(p.read_text())
+          assert m["rendered"]==14
+          assert len(m["cast"])==3
+          assert m["approval"] is False
+          assert m["suitable_for_publication"] is False
+          assert m["duration_seconds"]>25
+          assert set(x["voice"] for x in m["lines"])=={"af_heart","am_michael","bf_emma"}
+          assert all(pathlib.Path(x["audio"]).is_file() for x in m["lines"])
+          assert all(x["rms"]>=0.006 and x["peak"]<=1 for x in m["lines"])
+          print("Voice generated but DOES NOT satisfy human-quality release gate without listening.")
+          PY
+      - name: Install open-source Rhubarb Lip Sync v1.14.0
+        run: |
+          curl -fL --retry 3 --retry-delay 2 "https://github.com/DanielSWolf/rhubarb-lip-sync/releases/download/v1.14.0/Rhubarb-Lip-Sync-1.14.0-Linux.zip" -o /tmp/rhubarb.zip
+          mkdir -p /tmp/mpt-rhubarb
+          unzip -q /tmp/rhubarb.zip -d /tmp/mpt-rhubarb
+          find /tmp/mpt-rhubarb -type f -name rhubarb -exec chmod +x {} \;
+          RHUBARB_BIN="$(find /tmp/mpt-rhubarb -type f -name rhubarb | head -1)"
+          test -n "$RHUBARB_BIN"
+          echo "RHUBARB_BIN=$RHUBARB_BIN" >> "$GITHUB_ENV"
+          "$RHUBARB_BIN" --version
+      - name: Align speech and generate per-character mouth cues
+        run: |
+          python studio/rhubarb_sync.py --cast-report out/scene1_audio/cast_report.json --rhubarb "$RHUBARB_BIN" --out out/scene1_lipsync
+          python - <<'PY'
+          import json, pathlib
+          root=pathlib.Path("out/scene1_lipsync")
+          manifest=json.loads((root/"cues_manifest.json").read_text())
+          assert len(manifest["speaker_cues"])==3
+          total=0
+          for speaker,path in manifest["speaker_cues"].items():
+              cues=json.loads(pathlib.Path(path).read_text())["mouthCues"]
+              total+=len(cues)
+              assert len(cues)>6, (speaker,len(cues))
+              assert all(c["end"]>c["start"] for c in cues)
+          assert total>30, total
+          print({"speakers":len(manifest["speaker_cues"]),"phoneme_cues":total,"film_ready":False})
+          PY
+      - name: Save original line audio for private audition (not published)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unreviewed-starwood-scene1-dialogue
+          path: |
+            out/scene1_audio/*.wav
+            out/scene1_audio/cast_report.json
+            out/scene1_lipsync/*.json
+          retention-days: 1
+          if-no-files-found: warn

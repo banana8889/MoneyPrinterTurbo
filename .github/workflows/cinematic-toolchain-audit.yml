@@ -1,0 +1,66 @@
+name: Free-first 2026 Cinematic Tools Upgrade
+on:
+  push:
+    branches: [autonomy-kids-v1]
+    paths:
+      - "studio/free_toolchain.py"
+      - "test/services/test_free_toolchain.py"
+      - "studio/film_shot_planner.py"
+      - "studio/season1_episode1_full.json"
+      - "test/services/test_film_shot_planner.py"
+      - "studio/chatterbox_v3_cast.py"
+      - "test/services/test_chatterbox_v3_cast.py"
+      - ".github/workflows/cinematic-toolchain-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate-selection-policy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install local audio QA dependencies without loading large models
+        run: python3 -m pip install -q numpy soundfile
+
+      - name: Run 32-repository policy and hardware safeguard tests
+        run: |
+          python3 -m unittest -v test.services.test_free_toolchain test.services.test_film_shot_planner test.services.test_chatterbox_v3_cast
+          python3 studio/film_shot_planner.py studio/season1_episode1_full.json --out /tmp/episode1_shot_plan.json
+          python3 -m studio.free_toolchain select --vram 0 > /tmp/cpu_toolchain.json
+          python3 -m studio.free_toolchain select --vram 24 > /tmp/gpu_toolchain.json
+          python3 -m studio.free_toolchain inventory > /tmp/inventory.json
+          python3 - <<'PY'
+          import json
+          a=json.load(open("/tmp/cpu_toolchain.json"))
+          b=json.load(open("/tmp/gpu_toolchain.json"))
+          inv=json.load(open("/tmp/inventory.json"))
+          shots=json.load(open("/tmp/episode1_shot_plan.json"))
+          assert shots["film_ready"] is False and len(shots["timeline"])==84
+          assert 240 <= shots["story_duration_seconds"] <=480
+          assert len(shots["shots"])>=20
+          assert len(inv)>=30
+          assert not a["production_ready"] and not b["production_ready"]
+          assert "automatic_skinning" not in a["selected"]
+          assert "optional_video_enhancement" not in a["selected"]
+          assert "Blender"==a["selected"]["character_animation"]["name"]
+          assert all(x["name"]!="GVHMR" for x in b["selected"].values())
+          print({"researched_tools":len(inv),"cpu_selected":list(a["selected"]),
+                 "gpu_selected":list(b["selected"]),"film_certified":False})
+          PY
+
+      - name: Upload internal objective selection reports, not film previews
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cinematic-toolchain-selection-audit
+          path: |
+            /tmp/cpu_toolchain.json
+            /tmp/gpu_toolchain.json
+            /tmp/inventory.json
+            /tmp/episode1_shot_plan.json
+          retention-days: 5
+          if-no-files-found: warn

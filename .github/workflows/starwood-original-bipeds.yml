@@ -1,0 +1,100 @@
+name: Original Biped Starwood Characters CPU Build (One-off)
+on:
+  push:
+    branches: [autonomy-kids-v1]
+    paths:
+      - "studio/anthro_hero_factory.py"
+      - "studio/rig_qa_blender.py"
+      - ".github/workflows/starwood-original-bipeds.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  two-original-actors:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 19
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install actual free Blender 4.5 LTS — no CUDA required
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq xz-utils libegl1 libxrender1
+          curl -fL --retry 3 https://download.blender.org/release/Blender4.5/blender-4.5.9-linux-x64.tar.xz -o /tmp/blender.tar.xz
+          mkdir -p /tmp/blender45
+          tar -xJf /tmp/blender.tar.xz -C /tmp/blender45
+          BIN="$(find /tmp/blender45 -type f -name blender | head -1)"
+          test -x "$BIN"
+          "$BIN" --background --version | head -4
+          echo "BLENDER=$BIN" >> "$GITHUB_ENV"
+      - name: Build TWO original biped skeletal characters with face shape keys
+        run: |
+          mkdir -p /tmp/starwood_original
+          "$BLENDER" --background -t 4 --python studio/anthro_hero_factory.py -- \
+             --out /tmp/starwood_original/luma_pip.blend --frames 72 \
+            > /tmp/starwood_original/build.log 2>&1 \
+            || { tail -130 /tmp/starwood_original/build.log; exit 1; }
+          grep -q 'ORIGINAL_ANTHRO_3D_SKELETON_BUILT' /tmp/starwood_original/build.log
+          test -s /tmp/starwood_original/luma_pip.blend
+      - name: Verify actual Blender native scene structure and source character uniqueness
+        run: |
+          cat >/tmp/starwood_original/audit.py <<'PY'
+          import bpy, json
+          ar=[a for a in bpy.data.objects if a.type=="ARMATURE"]
+          assert len(ar)==2,(len(ar),[a.name for a in ar])
+          assert len(ar[0].data.bones)>=13 and len(ar[1].data.bones)>=13
+          assert all(a.animation_data and a.animation_data.action for a in ar)
+          meshes=[a for a in bpy.data.objects if a.type=="MESH"]
+          assert len(meshes)>35,len(meshes)
+          sh=[(o.name,list(o.data.shape_keys.key_blocks.keys())) for o in meshes if o.data.shape_keys]
+          assert len(sh)>=5,sh
+          assert any("Open" in names for _,names in sh)
+          assert sum("Blink" in names for _,names in sh)>=4
+          assert any("Luma" in o.name for o in meshes)
+          assert any("Pip" in o.name for o in meshes)
+          assert bpy.context.scene.render.resolution_x == 960
+          assert bpy.context.scene.render.resolution_y == 540
+          print("ORIGINAL_TWO_BIPED_ACTORS_PASS",json.dumps({"armatures":len(ar),"bones":[len(a.data.bones) for a in ar],"meshes":len(meshes),"face_shapes":len(sh),"film_approved":False}))
+          PY
+          "$BLENDER" --background /tmp/starwood_original/luma_pip.blend \
+             --python /tmp/starwood_original/audit.py > /tmp/starwood_original/audit.log 2>&1 \
+            || { tail -120 /tmp/starwood_original/audit.log; exit 1; }
+          grep ORIGINAL_TWO_BIPED_ACTORS_PASS /tmp/starwood_original/audit.log
+      - name: Evaluate character heads/body attachments and true face acting through full 72 frames
+        run: |
+          "$BLENDER" --background /tmp/starwood_original/luma_pip.blend \
+            --python studio/rig_qa_blender.py -- \
+            --report /tmp/starwood_original/rig_geometry_qa.json \
+            > /tmp/starwood_original/rig_geometry.log 2>&1 \
+            || { tail -140 /tmp/starwood_original/rig_geometry.log; exit 1; }
+          grep ORIGINAL_RIG_GEOMETRY_EVALUATED_OK /tmp/starwood_original/rig_geometry.log
+          python3 - <<'PY'
+          import json
+          d=json.load(open("/tmp/starwood_original/rig_geometry_qa.json"))
+          assert d["skeleton_and_face_qc"] is True
+          assert d["cinematic_performance_verified"] is False
+          assert d["film_ready"] is False
+          PY
+      - name: Render internal single-frame rig placement/lighting receipt
+        run: |
+          "$BLENDER" --background -t 4 /tmp/starwood_original/luma_pip.blend \
+            -o /tmp/starwood_original/rig_#### -f 1 \
+            > /tmp/starwood_original/render.log 2>&1 \
+            || { tail -100 /tmp/starwood_original/render.log; exit 1; }
+          test -s /tmp/starwood_original/rig_0001.png
+      - name: Keep machine-verifiable private internal QA only (no partial clips)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: private-original-hero-armature-qa
+          path: |
+            /tmp/starwood_original/luma_pip.receipt.json
+            /tmp/starwood_original/audit.log
+            /tmp/starwood_original/build.log
+            /tmp/starwood_original/render.log
+            /tmp/starwood_original/rig_0001.png
+            /tmp/starwood_original/rig_geometry.log
+            /tmp/starwood_original/rig_geometry_qa.json
+          retention-days: 2
+          if-no-files-found: warn

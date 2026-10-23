@@ -1,0 +1,30 @@
+name: Free Local Cast Audio Validation
+on:
+  push:
+    branches: [autonomy-kids-v1]
+    paths:
+      - "studio/cast_audio.py"
+      - "studio/scene1_audio.json"
+      - "test/services/test_cast_audio.py"
+      - ".github/workflows/free-cast-audio.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cast-qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install lightweight offline test requirements
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy soundfile
+      - name: Validate original episode dialogue manuscript
+        run: |
+          python studio/cast_audio.py validate --script studio/scene1_audio.json
+      - name: Test audio manifest and safe QA gates (no TTS or paid API)
+        run: |
+          python -m unittest -v test.services.test_cast_audio

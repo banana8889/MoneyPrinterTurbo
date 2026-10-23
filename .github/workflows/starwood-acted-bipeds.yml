@@ -1,0 +1,106 @@
+name: Original Starwood Actors — Acted Blender Scene Build (Manual or Push)
+on:
+  push:
+    branches: [autonomy-kids-v1]
+    paths:
+      - "studio/anthro_hero_factory.py"
+      - "studio/rig_qa_blender.py"
+      - "studio/episode1_acting_score.py"
+      - "studio/blender_apply_acting.py"
+      - "test/services/test_original_acting_score.py"
+      - ".github/workflows/starwood-acted-bipeds.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  directed-original-actors:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 29
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify all 84 original measured lines and two actors
+        run: |
+          python3 -m unittest -v test.services.test_original_acting_score
+          python3 -m studio.episode1_acting_score \
+            --story studio/season1_episode1_full.json \
+            --out /tmp/episode1_acting_score.json
+          python3 - <<'PY'
+          import json
+          m=json.load(open("/tmp/episode1_acting_score.json"))
+          assert m["dialogue_lines"]==84
+          assert m["measured_timeline_seconds"]==351.3492
+          assert len(m["actor_controls"]["luma"])==84
+          assert len(m["actor_controls"]["pip"])==84
+          assert m["phonemes_from_original_recording"] is False
+          assert not m["film_ready"]
+          print("Two-actor performance stage is direction-only, not mastered film.")
+          PY
+      - name: Install genuine free Blender LTS on CPU
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq xz-utils libegl1 libxrender1
+          curl -fL --retry 3 --retry-delay 2 \
+            https://download.blender.org/release/Blender4.5/blender-4.5.9-linux-x64.tar.xz \
+            -o /tmp/blender-lts.tar.xz
+          mkdir -p /tmp/blender45
+          tar -xJf /tmp/blender-lts.tar.xz -C /tmp/blender45
+          BIN="$(find /tmp/blender45 -type f -name blender | head -1)"
+          test -x "$BIN"
+          echo "BLENDER=$BIN" >> "$GITHUB_ENV"
+      - name: Build real original biped fox and rabbit source scene
+        run: |
+          mkdir -p /tmp/starwood_original_act1
+          "$BLENDER" --background -t 4 --python studio/anthro_hero_factory.py -- \
+            --out /tmp/starwood_original_act1/luma_pip_base.blend --frames 72 \
+            > /tmp/starwood_original_act1/model.log 2>&1 \
+            || { tail -100 /tmp/starwood_original_act1/model.log; exit 1; }
+          test -s /tmp/starwood_original_act1/luma_pip_base.blend
+      - name: Verify head/body attachment, skeletal continuity and face shape keys
+        run: |
+          "$BLENDER" --background -t 4 /tmp/starwood_original_act1/luma_pip_base.blend \
+            --python studio/rig_qa_blender.py -- \
+            --report /tmp/starwood_original_act1/structural.json \
+            > /tmp/starwood_original_act1/structural.log 2>&1 \
+            || { tail -130 /tmp/starwood_original_act1/structural.log; exit 1; }
+          grep -q "ORIGINAL_RIG_GEOMETRY_EVALUATED_OK" /tmp/starwood_original_act1/structural.log
+      - name: Apply genuine story-driven two-actor bone and facial acting for Act 1
+        run: |
+          "$BLENDER" --background -t 4 /tmp/starwood_original_act1/luma_pip_base.blend \
+            --python studio/blender_apply_acting.py -- \
+            --score /tmp/episode1_acting_score.json --act 1 \
+            --out /tmp/starwood_original_act1/starwood_act1_direction.blend \
+            > /tmp/starwood_original_act1/direct.log 2>&1 \
+            || { tail -150 /tmp/starwood_original_act1/direct.log; exit 1; }
+          grep -q "TWO_ORIGINAL_CHARACTERS_DIRECTED_ACTING" /tmp/starwood_original_act1/direct.log
+          test -s /tmp/starwood_original_act1/starwood_act1_direction.blend
+          python3 - <<'PY'
+          import json
+          d=json.load(open("/tmp/starwood_original_act1/starwood_act1_direction.acting_receipt.json"))
+          assert d["actor_count"]==2
+          assert d["actor_directed_clips"]>=12
+          assert d["camera_cuts"]>=2
+          assert d["frame_count"]>100
+          assert d["real_phonemes_applied"] is False
+          assert d["film_release_pass"] is False
+          PY
+      - name: Do not publish an unreviewed film
+        run: |
+          echo "Original biped source, joint attachment and first acted sequence built."
+          echo "This is NOT an approved feature-quality 4–8 minute movie."
+          echo "Without rights-cleared voice WAV/phoneme files, lip sync is not claimed."
+      - name: Preserve INTERNAL QA evidence only, no partial videos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: original-biped-acted-scene-technical-receipts
+          path: |
+            /tmp/starwood_original_act1/model.log
+            /tmp/starwood_original_act1/structural.log
+            /tmp/starwood_original_act1/structural.json
+            /tmp/starwood_original_act1/direct.log
+            /tmp/starwood_original_act1/starwood_act1_direction.acting_receipt.json
+            /tmp/episode1_acting_score.json
+          retention-days: 3
+          if-no-files-found: warn
