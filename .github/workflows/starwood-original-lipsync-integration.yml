@@ -1,0 +1,125 @@
+name: One-Off Original 3D Cast + Measured Real Phoneme Acting
+on:
+  push:
+    branches: [autonomy-kids-v1]
+    paths:
+      - "studio/anthro_hero_factory.py"
+      - "studio/blender_apply_acting.py"
+      - "studio/episode1_acting_score.py"
+      - "studio/rig_qa_blender.py"
+      - "studio/rhubarb_sync.py"
+      - ".github/workflows/starwood-original-lipsync-integration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  true-recorded-phonemes-on-original-faces:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 59
+    env:
+      TOKENIZERS_PARALLELISM: "false"
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      CUDA_VISIBLE_DEVICES: ""
+      OMP_NUM_THREADS: "4"
+    steps:
+      - uses: actions/checkout@v4
+      - name: CPU dependencies and offline voice tools
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq espeak-ng ffmpeg unzip xz-utils libegl1 libxrender1
+          python3 -m pip install -q "kokoro>=0.9.4,<1.0" numpy soundfile
+      - name: Generate actual original 84-line dialogue and local audio
+        run: |
+          python3 studio/cast_audio.py render --script studio/season1_episode1_full.json --out /tmp/cast
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          a=json.loads(Path("/tmp/cast/cast_report.json").read_text())
+          assert a["rendered"]==84 and set(a["cast"])=={"luma","pip","narrator"}
+          assert abs(a["duration_seconds"]-351.3492)<3, "Recheck timing if model changed"
+          assert a["approval"] is False and a["suitable_for_publication"] is False
+          print({"generated_utterances":84,"dialogue_seconds":a["duration_seconds"],"film_ready":False})
+          PY
+      - name: Generate actual speaker-specific Rhubarb phonemes from real audio
+        run: |
+          curl -fL --retry 3 \
+            https://github.com/DanielSWolf/rhubarb-lip-sync/releases/download/v1.14.0/Rhubarb-Lip-Sync-1.14.0-Linux.zip \
+            -o /tmp/rhubarb.zip
+          mkdir -p /tmp/rhubarb
+          unzip -q /tmp/rhubarb.zip -d /tmp/rhubarb
+          find /tmp/rhubarb -type f -name rhubarb -exec chmod +x {} \;
+          R="$(find /tmp/rhubarb -type f -name rhubarb | head -1)"
+          test -x "$R"
+          python3 studio/rhubarb_sync.py --cast-report /tmp/cast/cast_report.json \
+            --rhubarb "$R" --out /tmp/phonemes
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          count=0
+          for who in ["luma","pip"]:
+              mouth=json.loads(Path(f"/tmp/phonemes/{who}_cues.json").read_text())
+              count+=len(mouth["mouthCues"])
+          assert count>500
+          print({"actual_original_actors_lipsync_cues":count,"film_ready":False})
+          PY
+      - name: Install genuine free Blender 4.5 LTS
+        run: |
+          curl -fL --retry 3 \
+            https://download.blender.org/release/Blender4.5/blender-4.5.9-linux-x64.tar.xz \
+            -o /tmp/blender.tar.xz
+          mkdir -p /tmp/blender45
+          tar -xJf /tmp/blender.tar.xz -C /tmp/blender45
+          BIN="$(find /tmp/blender45 -type f -name blender | head -1)"
+          test -x "$BIN"
+          echo "BLENDER=$BIN" >> "$GITHUB_ENV"
+      - name: Build original rigged Luma/Pip from local procedural model factory
+        run: |
+          mkdir -p /tmp/starwood
+          "$BLENDER" --background -t 4 --python studio/anthro_hero_factory.py -- \
+            --out /tmp/starwood/cast_base.blend --frames 72 \
+            >/tmp/starwood/build.log 2>&1 \
+            || { tail -150 /tmp/starwood/build.log; exit 1; }
+          "$BLENDER" --background -t 4 /tmp/starwood/cast_base.blend \
+            --python studio/rig_qa_blender.py -- --report /tmp/starwood/rig_qa.json \
+            >/tmp/starwood/rig_qa.log 2>&1 \
+            || { tail -150 /tmp/starwood/rig_qa.log; exit 1; }
+          grep -q ORIGINAL_RIG_GEOMETRY_EVALUATED_OK /tmp/starwood/rig_qa.log
+      - name: Direct actual scene with both actors, real phonemes and measured dialogue
+        run: |
+          python3 -m studio.episode1_acting_score --story studio/season1_episode1_full.json \
+            --out /tmp/starwood/acting_score.json
+          "$BLENDER" --background -t 4 /tmp/starwood/cast_base.blend \
+            --python studio/blender_apply_acting.py -- \
+            --score /tmp/starwood/acting_score.json --act 1 \
+            --phonemes /tmp/phonemes --out /tmp/starwood/act1_directed.blend \
+            >/tmp/starwood/actor_direction.log 2>&1 \
+            || { tail -180 /tmp/starwood/actor_direction.log; exit 1; }
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path("/tmp/starwood/act1_directed.acting_receipt.json").read_text())
+          assert d["real_phonemes_applied"] is True
+          assert d["actor_count"]==2 and d["actor_directed_clips"]>=12
+          assert d["camera_cuts"]>=2
+          assert d["original_audio_wav_embedded"] is False
+          assert d["aesthetic_quality_approved"] is False
+          assert d["film_release_pass"] is False
+          print({"actual_performance_directed":True,"genuine_mouth_cues":True,
+                 "original_3d_bipeds":2,"film_ready":False})
+          PY
+      - name: Technical receipts only — no partial clips or publishing
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: private-original-biped-real-lipsync-integration-receipts
+          path: |
+            /tmp/starwood/build.log
+            /tmp/starwood/rig_qa.log
+            /tmp/starwood/rig_qa.json
+            /tmp/starwood/actor_direction.log
+            /tmp/starwood/act1_directed.acting_receipt.json
+            /tmp/starwood/acting_score.json
+          retention-days: 2
+          if-no-files-found: warn
