@@ -45,7 +45,7 @@ def story(path: Path) -> dict:
     return d
 
 
-def clip(name, actor, start, end, emotion, line_number, mode):
+def clip(name, actor, start, end, emotion, line_number, mode, act):
     if not 0 <= start < end <= 352:
         raise ValueError("Invalid timed performance clip")
     look = ("luma" if actor == "pip" else "pip")
@@ -61,7 +61,7 @@ def clip(name, actor, start, end, emotion, line_number, mode):
                 "smile": .1, "reach": 0.0, "torso_lean": .025}
     return {
         "name": name, "actor": actor, "mode": mode,
-        "line_number": line_number, "emotion": emotion,
+        "line_number": line_number, "act": act, "emotion": emotion,
         "start": round(start, 4), "end": round(end, 4),
         "look_at": look if mode != "narrated" else "story_clue",
         "bone_pose": {
@@ -99,7 +99,7 @@ def build(script: dict) -> dict:
             mode=("narrated" if who=="narrator" else
                   "speak" if who==actor else "listen")
             controls[actor].append(clip(
-                f"{actor}_line_{n:03d}",actor,start,end,emotion,n,mode
+                f"{actor}_line_{n:03d}",actor,start,end,emotion,n,mode,line["act"]
             ))
         act_coverage.setdefault(line["act"], []).append(n)
     if sorted(act_coverage)!=list(range(1,8)):
