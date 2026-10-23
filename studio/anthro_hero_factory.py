@@ -90,7 +90,8 @@ def make():
             o.parent=parent;o.matrix_parent_inverse=parent.matrix_world.inverted()
         return o
     def face_key(o,name,shape):
-        k=o.shape_key_add(name="Basis",from_mix=False) if o.data.shape_keys is None else None
+        if o.data.shape_keys is None:
+            o.shape_key_add(name="Basis",from_mix=False)
         key=o.shape_key_add(name=name,from_mix=False)
         for v in key.data:
             x,y,z=v.co
