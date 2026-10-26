@@ -1,0 +1,81 @@
+{
+  "series": "Starwood",
+  "episode": 1,
+  "title": "The Missing Star",
+  "created_on": "2026-10-27",
+  "state": "PLANNED_NO_NEW_VIDEO_RENDERED",
+  "references": {
+    "original_episode_script": "studio/season1_episode1_full.json",
+    "real_existing_ai_video": "https://4ba96fba-a38a-45c1-8374-7d1c4ff561f9.sandbox.floot.app/_cdn/static/STARWOOD_Kandinsky6_TwoShots_10s_2026-10-26.mp4"
+  },
+  "quality": {
+    "character_lock": "Luma red fox turquoise scarf; Pip cream rabbit plum bow tie",
+    "style": "high-end cinematic dimensional family animation",
+    "frame_input": "last actual frame of preceding accepted clip",
+    "sound": "native AI audio; audition voices before acceptance",
+    "fps": 24,
+    "ratio": "16:9",
+    "shot_seconds": 5.04
+  },
+  "shots": [
+    {
+      "index": 3,
+      "act": 1,
+      "title": "The sky changes",
+      "action": "Luma and Pip approach the forest archway; fireflies dim; Luma: 'Something in the forest is changing.'",
+      "render_status": "NOT_RENDERED"
+    },
+    {
+      "index": 4,
+      "act": 1,
+      "title": "Fireflies go out",
+      "action": "All fireflies disappear. Luma shields Pip; Pip: 'Every light stopped.'",
+      "render_status": "NOT_RENDERED"
+    },
+    {
+      "index": 5,
+      "act": 3,
+      "title": "The floating golden lantern",
+      "action": "A small mysterious glowing lantern floats between the roots. Luma: 'Pip, look at that lantern.'",
+      "render_status": "NOT_RENDERED"
+    },
+    {
+      "index": 6,
+      "act": 3,
+      "title": "Three symbols appear",
+      "action": "The lantern shows a star, a tree and two paw prints. Pip: 'Two paw prints. Like ours.'",
+      "render_status": "NOT_RENDERED"
+    },
+    {
+      "index": 7,
+      "act": 3,
+      "title": "A choice made together",
+      "action": "Pip joins Luma and they follow the floating light carefully. Luma: 'This time, I will listen to you.'",
+      "render_status": "NOT_RENDERED"
+    },
+    {
+      "index": 8,
+      "act": 4,
+      "title": "Entrance to the hidden glade",
+      "action": "Roots part and reveal a flower-filled glade. Pip: 'How has this place been here all along?'",
+      "render_status": "NOT_RENDERED"
+    },
+    {
+      "index": 9,
+      "act": 4,
+      "title": "Tiny bell under the leaf",
+      "action": "Luma notices a small silver moth under a leaf. Luma: 'You're not alone.'",
+      "render_status": "NOT_RENDERED"
+    },
+    {
+      "index": 10,
+      "act": 4,
+      "title": "The moth shows a clue",
+      "action": "Golden dust traces a glowing tree and a door. Pip: 'It's showing us a way.'",
+      "render_status": "NOT_RENDERED"
+    }
+  ],
+  "first_two_scenes": "RENDERED_VERIFIED",
+  "new_scenes_rendered": 0,
+  "blocker": "No GPU/network execution available right now; free ZeroGPU exceeded quota; no fictional preview"
+}
