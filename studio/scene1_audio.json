@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "series": "Starwood",
+  "episode": 1,
+  "scene": "The Missing Star — cold open",
+  "language": "en-US",
+  "lines": [
+    {
+      "speaker": "narrator",
+      "emotion": "wonder",
+      "text": "Every night in Starwood, the stars glimmered like lanterns above the forest."
+    },
+    {
+      "speaker": "luma",
+      "emotion": "curious",
+      "text": "Pip, are you awake? Look at that one. It's brighter than all the others."
+    },
+    {
+      "speaker": "pip",
+      "emotion": "gentle",
+      "text": "That's the North Lantern. It always points the way home."
+    },
+    {
+      "speaker": "luma",
+      "emotion": "wonder",
+      "text": "Then why is it trembling? It's almost as if..."
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "concern",
+      "text": "The light flickered once, twice, and vanished from the sky."
+    },
+    {
+      "speaker": "luma",
+      "emotion": "concern",
+      "text": "Pip! It's gone. Can a star just disappear?"
+    },
+    {
+      "speaker": "pip",
+      "emotion": "curious",
+      "text": "Stars don't usually do that. Wait, do you hear something?"
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "wonder",
+      "text": "From the deepest part of the forest, a small golden lantern rose into the mist."
+    },
+    {
+      "speaker": "luma",
+      "emotion": "excited",
+      "text": "I think it's asking us to follow!"
+    },
+    {
+      "speaker": "pip",
+      "emotion": "concern",
+      "text": "Or warning us not to. Let's look carefully before we move."
+    },
+    {
+      "speaker": "luma",
+      "emotion": "hopeful",
+      "text": "Together, then. One step at a time."
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "wonder",
+      "text": "Inside the lantern, a tiny map appeared. On it was a place neither friend had ever seen."
+    },
+    {
+      "speaker": "pip",
+      "emotion": "concern",
+      "text": "Luma... that place is right beneath our feet."
+    },
+    {
+      "speaker": "narrator",
+      "emotion": "urgent",
+      "text": "And somewhere far below, something answered with three slow knocks."
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+# STARWOOD/MicroFabric Ensemble v2 — variable-cast delivery, 2026-10-27
+
+**User request:** continue developing the self-hosted three-series film factory; decide whether two characters is enough. Answer: two was an early coding constraint, not a valid film limit. This iteration removes that constraint from the original control plane.
+
+## Genuine implementation completed
+- New ORIGINAL, MIT-source, clean-room modules created in the conversation workspace: `MICROFABRIC_ENSEMBLE.py`, `MICROFABRIC_ENSEMBLE_RENDER.py`, `MICROFABRIC_ENSEMBLE_BATCH.py`; downloaded together with legacy factory / tests / generated plans as `MICROFABRIC_ENSEMBLE_V2_VARIABLE_CAST_2026-10-27.zip`. These actual Python files are **in the downloadable ChatGPT artifact, not in this GitHub repository**. Do not claim they have been committed to this branch.
+- Three original episode rosters: STARWOOD 6 named characters + 2 crowd archetypes; RIVER ZERO 8 + 2; ORBIT NINE 6 + 2 (20 unique speaking/non-speaking characters plus 6 background group archetypes).
+- 252 deterministic original scene-planning records (84 each series), with per-shot visible actor lists from 0–4 in the sample production and isolated background crowd groups up to 70.
+- Engine supports variable actor count: 128 distinctly identified on-screen actors successfully encoded/decoded in an offline stress test; custom editable `cast_editable.json` tested with **seven** same-shot actors. This is NOT 128 actors rendered by AI.
+- Prototype crowd group of **500,000** background extras represented compactly with deterministic seed, without actually generating 500k 3D meshes or neural image pixels. This is NOT a render or verified low VRAM inference.
+- Each actor has 13 Q4-dimensional controls at the beginning and end of each shot, including position-ish body/head directions, gaze, expression/fear, gesture, stride and speech activation. Independent world state has 13 dimensions for two keyframes. Dynamic MFE2 capsule has version, cast SHA-256 prefix, per-actor IDs, crowd seeds/count, and CRC32; control packet size grows with stage.
+- Cast scene policy explicitly distinguishes same-setting shared-cast last-frame continuation from new location/characters, preventing wrong old actor face from automatically carrying into scene. Voices from radio/AI aren't rendered as human characters by default. Hash-linked scene lineage and cast and cached-media SHA checks.
+- Integration adapter hooks this stage into the existing `THREE_SERIES_FACTORY.py` SQLite WAL scheduling. Per-shot local rendering ONLY via locally installed Wan2.2 (official Apache-2.0 weights), no paid cloud API, cache only verified local inference. Original factory and legacy v1 remain intact.
+- *22 new offline tests* and *8 legacy regression tests* passed; archive extracted into a new temp dir and both suites repeated passing. MFE2 manifest verified. Output capsule file for all 252 = **18,029 bytes**; full manifest with prompts and record hashes = 507,093 bytes; this is *not* video or a compressed neural network.
+- Actual environment has ffmpeg, but *no local CUDA GPU, no Wan model code/checkpoints*. Attempt to run returns `BLOCKED_NO_REAL_INFERENCE` cleanly; **zero new AI frames** this turn. No full episode/speech success or 3-episode/day proof. The 15-second Kandinsky movie from an earlier session remains the real visual baseline: https://4ba96fba-a38a-45c1-8374-7d1c4ff561f9.sandbox.floot.app/_cdn/static/STARWOOD_EP1_ThreeScenes_15s_2026-10-27.mp4
+
+## Next evidence gate
+Get real local inference on sufficiently provisioned GPU (official Wan2.2 TI2V-5B checkpoint recommended 24GB VRAM, CPU offload); test multi-actor visual identity/temporal consistency versus the established Kandinsky 15s film, and then speech and full-episode throughput. The current 4-bit compression is on director controls only, **not the GPU neural weights**; benchmark required before claiming speed or quality gains.
+
+No manual social accounts needed yet, no videos posted, no automated schedule created, no paid service used.

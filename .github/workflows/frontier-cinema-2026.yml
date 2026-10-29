@@ -1,0 +1,51 @@
+name: 2026 Frontier Cinematic Pipeline — Offline Tests
+
+on:
+  push:
+    branches: [autonomy-kids-v1]
+    paths:
+      - "studio/frontier_film_director.py"
+      - "studio/film_shot_planner.py"
+      - "studio/season1_episode1_full.json"
+      - "test/services/test_frontier_film_director.py"
+      - "studio/scail2_execution.py"
+      - "test/services/test_scail2_execution.py"
+      - ".github/workflows/frontier-cinema-2026.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-story-memory:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate new frontier cinematic compiler without GPU or paid API
+        run: |
+          python3 -m unittest -v test.services.test_frontier_film_director test.services.test_scail2_execution
+          python3 -m studio.frontier_film_director studio/season1_episode1_full.json \
+            --out /tmp/starwood_2026_film_dsl.json
+          python3 - <<'PY'
+          import json
+          m=json.load(open("/tmp/starwood_2026_film_dsl.json"))
+          assert len(m["clips"])==41
+          assert len(m["segments"])>60
+          assert len({s["seed"] for s in m["segments"]})==len(m["segments"])
+          assert all(not x["render_ready"] for x in m["segments"])
+          assert m["execution"]["rendered_shots"]==0
+          assert m["execution"]["monetary_actions_permitted"] is False
+          assert "wan_animate_2" in m["sources"] and "scail2" in m["sources"]
+          print({"2026_cinematic_shots":len(m["clips"]),
+                 "memory_continuations":len(m["segments"]),
+                 "rendered_films":0,"film_ready":False})
+          PY
+      - name: Keep only technical production-plan report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontier-2026-original-episode-plan
+          path: /tmp/starwood_2026_film_dsl.json
+          retention-days: 5
+          if-no-files-found: warn

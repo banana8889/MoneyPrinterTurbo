@@ -1,0 +1,100 @@
+name: Free Real 3D Face Rig Integration (One-off)
+on:
+  push:
+    branches: [autonomy-kids-v1]
+    paths:
+      - ".github/workflows/free-real-facs-stage.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  godot-real-facs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 27
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Obtain current CC0/MIT full-FACS 3D human actor
+        run: |
+          git clone --depth=1 --single-branch https://github.com/ibrews/VitruvianGodot.git /tmp/vitruvian
+          test -s /tmp/vitruvian/godot_project/vitruvian_head.glb
+          test -s /tmp/vitruvian/godot_project/vitruvian_body.glb
+          test -s /tmp/vitruvian/NOTICE.md
+          grep -q "CC0" /tmp/vitruvian/NOTICE.md
+          echo "Real FACS 3D rig reference and credits fetched."
+
+      - name: Assemble real scene from licensed throwaway fixture audio
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from test.services.test_facs_pipeline import FACSPipelineTests
+          from studio.export_facs_cast import export_cast
+          from studio.install_facs_actor import install
+          f=FACSPipelineTests("test_offline_export_works_from_moved_github_artifact")
+          f.setUp()
+          try:
+              dest=Path("/tmp/vitruvian/godot_project")
+              exported=export_cast(f.cast_path,f.cues_dir,dest)
+              assert len(exported["lines"])==5
+              for actor in ("luma","pip"):
+                  report=install(dest,Path("studio/godot_facs_cast.gd"),actor)
+                  assert report["real_facs_rig_required"]
+                  assert report["film_quality_passed"] is False
+          finally:
+              f.doCleanups()
+          PY
+
+      - name: Download free stock Godot 4.6 renderer
+        run: |
+          curl -fL --retry 3 \
+            https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_linux.x86_64.zip \
+            -o /tmp/godot.zip
+          unzip -q /tmp/godot.zip -d /tmp
+          chmod +x /tmp/Godot_v4.6-stable_linux.x86_64
+
+      - name: Import the genuine morph rig and animated body
+        run: |
+          timeout 120 /tmp/Godot_v4.6-stable_linux.x86_64 --headless \
+            --path /tmp/vitruvian/godot_project --editor --quit > /tmp/import.log 2>&1 \
+            || { tail -100 /tmp/import.log; exit 1; }
+          echo "Godot imported real glTF head and skeletal body."
+
+      - name: Run both actors with real facial morphs, scripts and audio
+        run: |
+          for actor in luma pip; do
+            timeout 90 /tmp/Godot_v4.6-stable_linux.x86_64 --headless \
+              --path /tmp/vitruvian/godot_project \
+              "res://studio_cast/starwood_actor_$actor.tscn" \
+              --quit-after 120 > "/tmp/actor_$actor.log" 2>&1 \
+              || { tail -120 "/tmp/actor_$actor.log"; exit 1; }
+            if ! grep -q "FACS bound: $actor" "/tmp/actor_$actor.log"; then
+              tail -100 "/tmp/actor_$actor.log"
+              echo "Real facial rig failed to bind!"
+              exit 1
+            fi
+            if grep -E "SCRIPT ERROR:|Parse Error:|Failed loading resource" "/tmp/actor_$actor.log"; then
+              echo "The Godot actor produced runtime errors, rejecting"
+              exit 1
+            fi
+            grep -E "FACS bound:" "/tmp/actor_$actor.log"
+          done
+
+      - name: Final non-publishable evidence record
+        if: always()
+        run: |
+          echo "This checks genuine facial geometry/rig driver binding, not cinematic acting quality."
+          echo "Not a final Luma/Pip original character; never publish test-tone audio."
+
+      - name: Upload logs only (no partial videos to user)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-facs-face-binding-logs
+          path: |
+            /tmp/import.log
+            /tmp/actor_luma.log
+            /tmp/actor_pip.log
+          retention-days: 2
+          if-no-files-found: warn

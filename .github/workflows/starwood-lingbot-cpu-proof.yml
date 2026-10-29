@@ -1,0 +1,80 @@
+name: STARWOOD free CPU learned-video experiment
+on:
+  push:
+    branches: [autonomy-kids-v1]
+    paths: ['.github/workflows/starwood-lingbot-cpu-proof.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  generate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      OMP_NUM_THREADS: '4'
+      OPENBLAS_NUM_THREADS: '4'
+    steps:
+      - name: Build free local C++ video model runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends cmake g++ git ffmpeg
+          git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/leejet/stable-diffusion.cpp.git upstream
+          cmake -S upstream -B upstream/build -DCMAKE_BUILD_TYPE=Release -DSD_BUILD_EXAMPLES=ON -DSD_WEBP=OFF -DSD_WEBM=OFF -DGGML_NATIVE=ON
+          cmake --build upstream/build --target sd-cli -j 4
+          upstream/build/bin/sd-cli --help > backend_help.txt 2>&1 || true
+      - name: Download publisher-verified GGUF weights, no hosted inference API
+        run: |
+          set -euo pipefail
+          mkdir -p models
+          curl -fL --retry 3 -o models/LingBot-Video-Dense-1.3B-Q4_K_S.gguf https://huggingface.co/off-grid-ai/LingBot-Video-Dense-1.3B-GGUF/resolve/main/LingBot-Video-Dense-1.3B-Q4_K_S.gguf
+          echo "6f0a19c9c3872fccc6e58fe2587c4674e9e018b231c79850729ae9ceb05cdeeb  models/LingBot-Video-Dense-1.3B-Q4_K_S.gguf" | sha256sum -c -
+          curl -fL --retry 3 -o models/Qwen3VL-4B-Instruct-Q4_K_M.gguf https://huggingface.co/off-grid-ai/Video-Companions-GGUF/resolve/main/Qwen3VL-4B-Instruct-Q4_K_M.gguf
+          echo "66358cb18bb6b3b1b6675aa412c7a88ef01d228f481184d13668e5201c730a0a  models/Qwen3VL-4B-Instruct-Q4_K_M.gguf" | sha256sum -c -
+          curl -fL --retry 3 -o models/wan_2.1_vae.safetensors https://huggingface.co/off-grid-ai/Video-Companions-GGUF/resolve/main/wan_2.1_vae.safetensors
+          echo "2fc39d31359a4b0a64f55876d8ff7fa8d780956ae2cb13463b0223e15148976b  models/wan_2.1_vae.safetensors" | sha256sum -c -
+      - name: Produce brand-new original Tiko learned animation
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          cat > results/prompt.json <<'PROMPT'
+          {"caption":{"comprehensive_description":"Brand-new original professional 3D animated children's movie scene in the magical STARWOOD forest. Tiko is a small friendly cocoa-brown hedgehog inventor with distinct copper goggles, natural detailed quills, shiny green eyes and mint-green vest. He steps out of a beautiful round tree workshop door, carefully picks up a tiny glowing brass compass and raises it near his face, blinks and smiles. A gentle dolly movement follows his original believable acting; delicately lit moss, lush leaves, beautiful feature-film lighting, detailed fabric and fur. One continuous coherent camera shot, no reused video, clean sharp textured character, physically believable articulated movement.","camera_info":{"color":"warm amber and teal","frame_size":"medium close-up","shot_type_angle":"eye-level three quarter","lens_size":"35mm","composition":"single character in center","lighting":"soft bounced cinematic light","lighting_type":"warm volumetric"},"prominent_elements":[{"name":"Tiko the hedgehog","description":"New original small cocoa brown hedgehog inventor","location":"foreground","relative_size":"large","shape_and_color":"rounded brown young hedgehog","texture":"fine quills and mint cloth","appearance_details":"Copper goggles above green eyes, green vest, brass compass","relationship":"main hero","orientation":"three-quarter view","pose":"lifts glowing compass","expression":"delighted curiosity"}],"motion_description":"Tiko walks forward, raises the compass, blinks and reacts with a delighted smile."}}
+          PROMPT
+          cat > results/negative.json <<'NEG'
+          {"universal_negative":{"visual_quality":["blur","temporal detail loss","pixelation","compression"],"composition_and_content":["text","watermark","extra arms","duplicate faces"],"temporal_and_motion_stability":["flicker","morphing","deforming body"]}}
+          NEG
+          timeout 2100s upstream/build/bin/sd-cli -M vid_gen \
+            --diffusion-model models/LingBot-Video-Dense-1.3B-Q4_K_S.gguf \
+            --llm models/Qwen3VL-4B-Instruct-Q4_K_M.gguf \
+            --vae models/wan_2.1_vae.safetensors \
+            -p "$(cat results/prompt.json)" -n "$(cat results/negative.json)" \
+            --cfg-scale 3.0 --sampling-method euler --steps 16 \
+            --video-frames 9 --fps 12 -W 448 -H 256 \
+            --threads 4 --vae-tiling --vae-tile-size 256x256 \
+            --vae-conv-direct --flash-attn off,diffusion=on \
+            -s 12871 -o results/Tiko_NEW_LingBot_CPU.avi 2>&1 | tee results/inference.log
+          test -s results/Tiko_NEW_LingBot_CPU.avi
+          ffmpeg -nostdin -hide_banner -loglevel error -y -i results/Tiko_NEW_LingBot_CPU.avi -an -c:v libx264 -crf 17 -pix_fmt yuv420p -movflags +faststart results/Tiko_NEW_LingBot_CPU.mp4
+          ffmpeg -hide_banner -loglevel error -i results/Tiko_NEW_LingBot_CPU.mp4 -f null -
+          ffprobe -v error -select_streams v:0 -count_frames -show_entries stream=width,height,nb_read_frames -of json results/Tiko_NEW_LingBot_CPU.mp4 > results/probe.json
+          python3 - <<'PY'
+          import hashlib,json,pathlib
+          data=json.load(open('results/probe.json'))['streams'][0]
+          assert int(data['nb_read_frames'])==9 and int(data['width'])==448 and int(data['height'])==256
+          file=pathlib.Path('results/Tiko_NEW_LingBot_CPU.mp4')
+          receipt={'new_neural_frames':True,'no_old_footage':True,'cinematic_quality_approved':False,'frames':9,'sha256':hashlib.sha256(file.read_bytes()).hexdigest()}
+          pathlib.Path('results/proof_receipt.json').write_text(json.dumps(receipt,indent=2))
+          print(receipt)
+          PY
+      - name: Store genuine output and honest logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: STARWOOD-Tiko-new-LingBot-CPU
+          path: |
+            results/*.mp4
+            results/*.json
+            results/*.log
+            backend_help.txt
+          if-no-files-found: warn
+          retention-days: 7

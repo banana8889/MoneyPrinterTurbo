@@ -1,0 +1,78 @@
+name: Open Film Tools Runtime Probe (One-off)
+on:
+  push:
+    branches: [autonomy-kids-v1]
+    paths: [.github/workflows/open-film-tools-probe.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  free-cpu-probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    env:
+      CHANGJI_TELEMETRY: "0"
+      DO_NOT_TRACK: "1"
+      CUDA_VISIBLE_DEVICES: ""
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe only free local tools without any paid API
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/film-probe
+          python3 - <<'PY'
+          import json,os,platform,shutil
+          info={"python":platform.python_version(),"gpu_nodes":os.path.exists("/dev/nvidia0"),"ffmpeg":bool(shutil.which("ffmpeg")),"paid_endpoints_used":False}
+          open("/tmp/film-probe/environment.json","w").write(json.dumps(info,indent=2))
+          print("ENVIRONMENT",json.dumps(info))
+          PY
+          curl --fail --location --retry 2 --max-time 180 -o /tmp/film-probe/changji.tgz https://github.com/changji-ai/ChangJi/releases/download/release/changji-linux-x64.tar.gz
+          curl --fail --location --retry 2 --max-time 60 -o /tmp/film-probe/SHA256SUMS https://github.com/changji-ai/ChangJi/releases/download/release/SHA256SUMS
+          (cd /tmp/film-probe && grep 'changji-linux-x64.tar.gz$' SHA256SUMS | sha256sum -c -)
+          mkdir -p /tmp/film-probe/changji
+          tar -xzf /tmp/film-probe/changji.tgz -C /tmp/film-probe/changji
+          BIN="$(find /tmp/film-probe/changji -type f -name changji | head -1)"
+          test -n "$BIN"
+          chmod +x "$BIN"
+          "$BIN" --version > /tmp/film-probe/changji-version.log 2>&1
+          set +e
+          "$BIN" --doctor > /tmp/film-probe/changji-doctor.log 2>&1
+          RC=$?
+          set -e
+          echo "CHANGJI_DOCTOR_EXIT=$RC"
+          echo "$RC" > /tmp/film-probe/changji-doctor-exit.txt
+          head -70 /tmp/film-probe/changji-doctor.log
+          for entry in "Wan-Video/Wan2.2:wan" "kandinskylab/kandinsky-6:kandinsky"; do
+            repo="${entry%%:*}"
+            label="${entry##*:}"
+            git clone --quiet --depth 1 "https://github.com/$repo.git" "/tmp/film-probe/$label"
+            python3 - "/tmp/film-probe/$label" "$label" <<'PY'
+          import ast,os,pathlib,sys,json
+          root=pathlib.Path(sys.argv[1]); label=sys.argv[2]
+          files=list(root.rglob("*.py")); bad=[]
+          for f in files:
+              if any(p in {".git",".venv","venv"} for p in f.parts): continue
+              try: ast.parse(f.read_text(encoding="utf-8"),filename=str(f))
+              except Exception as e: bad.append(str(f.relative_to(root))+": "+str(e))
+          result={"tool":label,"python_files_parsed":len(files),"syntax_errors":bad[:20],"model_inference_ran":False}
+          pathlib.Path("/tmp/film-probe/"+label+"-source.json").write_text(json.dumps(result,indent=2))
+          print("SOURCE_PROBE",json.dumps(result))
+          if bad: sys.exit(1)
+          PY
+          done
+          echo "PROBE_COMPLETED_NO_VIDEO_GENERATION"
+      - name: Save inspection evidence, not a movie
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: open-source-film-runtime-probe
+          path: |
+            /tmp/film-probe/environment.json
+            /tmp/film-probe/changji-version.log
+            /tmp/film-probe/changji-doctor.log
+            /tmp/film-probe/changji-doctor-exit.txt
+            /tmp/film-probe/wan-source.json
+            /tmp/film-probe/kandinsky-source.json
+          retention-days: 3
+          if-no-files-found: warn
