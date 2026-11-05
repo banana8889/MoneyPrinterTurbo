@@ -1,0 +1,36 @@
+name: STARWOOD — Completed Short Film
+on:
+  push:
+    branches:
+      - starwood/film-premiere-20261105
+    paths:
+      - 'starwood/render_short_film.py'
+      - '.github/workflows/starwood-film-premiere.yml'
+  workflow_dispatch:
+jobs:
+  render:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare local video and Hebrew fonts
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg fonts-noto-core
+      - name: Render original STARWOOD short film
+        run: python3 starwood/render_short_film.py
+      - name: Verify movie file
+        run: |
+          test -s starwood_output/STARWOOD_THE_LANTERN_SIGNAL_COMPLETE_SHORT.mp4
+          ffprobe -v error -show_entries format=duration,size -of default=noprint_wrappers=1 starwood_output/STARWOOD_THE_LANTERN_SIGNAL_COMPLETE_SHORT.mp4
+          sha256sum starwood_output/STARWOOD_THE_LANTERN_SIGNAL_COMPLETE_SHORT.mp4 > starwood_output/SHA256SUMS.txt
+      - name: Upload finished film and checksum
+        uses: actions/upload-artifact@v4
+        with:
+          name: STARWOOD-COMPLETE-SHORT-FILM
+          path: |
+            starwood_output/STARWOOD_THE_LANTERN_SIGNAL_COMPLETE_SHORT.mp4
+            starwood_output/SHA256SUMS.txt
+          retention-days: 30
